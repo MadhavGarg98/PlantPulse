@@ -1,32 +1,13 @@
 import 'package:flutter/material.dart';
-import 'screens/responsive_home.dart';
 
-void main() {
-  runApp(const PlantPulseApp());
-}
-
-class PlantPulseApp extends StatelessWidget {
-  const PlantPulseApp({super.key});
+class CounterScreen extends StatefulWidget {
+  const CounterScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'PlantPulse',
-      theme: ThemeData(primarySwatch: Colors.green),
-      home: const ResponsiveHome(),
-    );
-  }
+  State<CounterScreen> createState() => _CounterScreenState();
 }
 
-class MyApp extends StatefulWidget {
-  const MyApp({super.key});
-
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
+class _CounterScreenState extends State<CounterScreen> {
   int counter = 0;
 
   void incrementCounter() {
@@ -72,11 +53,13 @@ class _MyAppState extends State<MyApp> {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           FloatingActionButton(
+            heroTag: "inc",
             onPressed: incrementCounter,
             child: const Icon(Icons.add),
           ),
           const SizedBox(height: 10),
           FloatingActionButton(
+            heroTag: "dec",
             onPressed: decrementCounter,
             child: const Icon(Icons.remove),
           ),
