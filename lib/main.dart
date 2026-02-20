@@ -16,21 +16,43 @@ void main() async {
   runApp(const PlantPulseApp());
 }
 
-class PlantPulseApp extends StatelessWidget {
+class PlantPulseApp extends StatefulWidget {
   const PlantPulseApp({super.key});
+
+  @override
+  State<PlantPulseApp> createState() => _PlantPulseAppState();
+}
+
+class _PlantPulseAppState extends State<PlantPulseApp> {
+  // State variable for dark mode
+  bool _isDarkMode = false;
+
+  void toggleTheme() {
+    setState(() {
+      _isDarkMode = !_isDarkMode;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'PlantPulse',
+      // Theme changes reactively based on _isDarkMode state
       theme: ThemeData(
         primarySwatch: Colors.green,
         useMaterial3: true,
+        brightness: Brightness.light,
       ),
+      darkTheme: ThemeData(
+        primarySwatch: Colors.green,
+        useMaterial3: true,
+        brightness: Brightness.dark,
+      ),
+      themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
       initialRoute: '/',
       routes: {
-        '/': (context) => const AuthWrapper(),
+        '/': (context) => AuthWrapper(toggleTheme: toggleTheme),
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const SignupScreen(),
         '/home': (context) => const ResponsiveHome(),
@@ -40,7 +62,9 @@ class PlantPulseApp extends StatelessWidget {
 }
 
 class AuthWrapper extends StatelessWidget {
-  const AuthWrapper({super.key});
+  final VoidCallback toggleTheme;
+  
+  const AuthWrapper({super.key, required this.toggleTheme});
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +82,7 @@ class AuthWrapper extends StatelessWidget {
         }
         
         if (snapshot.hasData) {
-          return DashboardScreen(user: snapshot.data!);
+          return DashboardScreen(user: snapshot.data!, toggleTheme: toggleTheme);
         } else {
           return const LoginScreen();
         }
