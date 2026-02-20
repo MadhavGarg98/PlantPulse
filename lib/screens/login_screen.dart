@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../services/firebase_service.dart';
-import 'dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -46,12 +45,9 @@ class _LoginScreenState extends State<LoginScreen> {
           backgroundColor: Colors.green,
         ),
       );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => DashboardScreen(user: user),
-        ),
-      );
+      // Navigate to root route - AuthWrapper will automatically show DashboardScreen
+      // with toggleTheme callback passed down
+      Navigator.pushReplacementNamed(context, '/');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
