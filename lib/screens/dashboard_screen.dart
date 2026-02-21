@@ -3,11 +3,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firebase_service.dart';
 import '../services/firestore_service.dart';
+import 'widget_tree_demo.dart';
 
 class DashboardScreen extends StatefulWidget {
   final User user;
+  final VoidCallback? toggleTheme;
   
-  const DashboardScreen({super.key, required this.user});
+  const DashboardScreen({super.key, required this.user, this.toggleTheme});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -69,8 +71,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: const Text('PlantPulse Dashboard'),
         backgroundColor: Colors.green,
         actions: [
+          // Theme toggle button - demonstrates reactive UI
+          IconButton(
+            icon: const Icon(Icons.brightness_6),
+            tooltip: 'Toggle Theme',
+            onPressed: widget.toggleTheme,
+          ),
+          IconButton(
+            icon: const Icon(Icons.code),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const WidgetTreeDemo(),
+                ),
+              );
+            },
+            tooltip: 'Widget Tree Demo',
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
             onPressed: _logout,
           ),
         ],
