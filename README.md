@@ -243,6 +243,242 @@ These screenshots prove that:
 
 ---
 
+## 🧭 Multi-Screen Navigation Implementation
+
+### Navigation Overview
+
+This version of PlantPulse demonstrates comprehensive multi-screen navigation using Flutter's Navigator and named routes system. The app showcases various navigation patterns essential for real-world applications.
+
+### Navigation Architecture
+
+#### Route Structure
+```dart
+// main.dart - Named Routes Configuration
+initialRoute: '/',
+routes: {
+  '/': (context) => const AuthWrapper(),                    // Entry point
+  '/login': (context) => const PremiumLoginScreen(),       // Authentication
+  '/signup': (context) => const PremiumSignupScreen(),     // Registration
+  '/home': (context) => HomeScreen(user: user),           // Main navigation hub
+  '/dashboard': (context) => PremiumDashboardScreen(user: user), // Plant management
+  '/profile': (context) => ProfileScreen(user: user),      // User profile
+  '/about': (context) => const AboutScreen(),              // App information
+  '/plant_demo': (context) => const PlantDemoScreen(),     // Data passing demo
+}
+```
+
+#### Navigation Flow Chart
+```
+┌─────────────────┐
+│   AuthWrapper   │ ← Firebase Auth State
+└─────────┬───────┘
+          │
+    ┌─────▼─────┐
+    │   Login   │ ← Not Authenticated
+    └─────┬─────┘
+          │
+    ┌─────▼─────┐
+│   HomeScreen   │ ← Authenticated (Main Hub)
+└─────┬─────┬─────┘
+      │     │
+┌─────▼─┐ ┌─▼─────┐ ┌─────────┐
+│Dashboard│ │Profile │ │ About   │
+└────────┘ └────────┘ └─────────┘
+```
+
+### Navigation Methods Demonstrated
+
+#### 1. Named Navigation with Arguments
+```dart
+// Navigate to dashboard with user data
+Navigator.pushNamed(
+  context, 
+  '/dashboard',
+  arguments: user,
+);
+```
+
+#### 2. Data Passing Between Screens
+```dart
+// Navigate with complex data
+Navigator.pushNamed(
+  context, 
+  '/plant_demo',
+  arguments: {
+    'plantName': 'Monstera',
+    'plantType': 'Tropical',
+    'wateringDays': 7,
+  },
+);
+
+// Retrieve data in destination screen
+final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
+final plantName = args?['plantName'] ?? 'Unknown Plant';
+```
+
+#### 3. Simple Navigation
+```dart
+// Navigate without data
+Navigator.pushNamed(context, '/about');
+```
+
+#### 4. Navigation Stack Management
+```dart
+// Go back to previous screen
+Navigator.pop(context);
+
+// Go back multiple screens
+Navigator.pop(context);
+Navigator.pop(context); // Back to home
+```
+
+### Screen Descriptions
+
+#### 1. HomeScreen (Navigation Hub)
+- **Purpose**: Central navigation point for authenticated users
+- **Features**: 
+  - Welcome message with user information
+  - Navigation cards to all major screens
+  - Visual demonstration of navigation methods
+  - Premium Material Design 3 UI
+
+#### 2. AboutScreen
+- **Purpose**: App information and technology stack
+- **Features**:
+  - App version information
+  - Technology stack details
+  - Navigation demo explanation
+  - Back navigation demonstration
+
+#### 3. ProfileScreen
+- **Purpose**: User profile and plant statistics
+- **Features**:
+  - User information display
+  - Plant count from Firestore
+  - Logout functionality
+  - Data passing from HomeScreen
+
+#### 4. PlantDemoScreen
+- **Purpose**: Demonstrate data passing between screens
+- **Features**:
+  - Receives plant data from HomeScreen
+  - Displays passed arguments
+  - Multiple navigation options (Back, Home)
+  - Care instructions based on passed data
+
+### Navigation Benefits in Production Apps
+
+#### 1. **Scalability**
+- Easy to add new screens without modifying existing navigation logic
+- Centralized route management in `main.dart`
+- Consistent navigation patterns across the app
+
+#### 2. **Maintainability**
+- Clear separation of navigation logic
+- Type-safe data passing with proper null safety
+- Easy to debug and modify navigation flows
+
+#### 3. **User Experience**
+- Smooth transitions between screens
+- Proper back stack management
+- Consistent navigation behavior
+
+#### 4. **Development Efficiency**
+- Reusable navigation patterns
+- Easy to test individual screens
+- Clear navigation flow documentation
+
+### Code Examples
+
+#### HomeScreen Navigation Implementation
+```dart
+class HomeScreen extends StatelessWidget {
+  final User user;
+  
+  const HomeScreen({super.key, required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          // Navigation Cards
+          _NavigationCard(
+            icon: Icons.dashboard,
+            title: 'Dashboard',
+            subtitle: 'Plant management',
+            onTap: () {
+              Navigator.pushNamed(
+                context, 
+                '/dashboard',
+                arguments: user,  // Pass user data
+              );
+            },
+          ),
+          // More navigation cards...
+        ],
+      ),
+    );
+  }
+}
+```
+
+#### Data Receiving in PlantDemoScreen
+```dart
+class PlantDemoScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    // Get arguments from previous screen
+    final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
+    
+    final plantName = args?['plantName'] ?? 'Unknown Plant';
+    final plantType = args?['plantType'] ?? 'Unknown Type';
+    final wateringDays = args?['wateringDays'] ?? 7;
+
+    return Scaffold(
+      body: Column(
+        children: [
+          Text('Plant: $plantName'),
+          Text('Type: $plantType'),
+          Text('Water every $wateringDays days'),
+        ],
+      ),
+    );
+  }
+}
+```
+
+### Testing Navigation
+
+#### Manual Testing Checklist
+1. **Login Flow**: Login → HomeScreen appears
+2. **Dashboard Navigation**: Home → Dashboard (with user data)
+3. **Profile Navigation**: Home → Profile (with user data)
+4. **About Navigation**: Home → About (no data needed)
+5. **Plant Demo**: Home → Plant Demo (with plant data)
+6. **Back Navigation**: All screens should properly navigate back
+7. **Data Passing**: Verify data appears correctly in destination screens
+
+#### Navigation Screenshots Required
+
+1. **HomeScreen**: Main navigation hub with all options
+2. **Dashboard**: Plant management screen with user data
+3. **Profile**: User profile with plant statistics
+4. **About**: App information screen
+5. **Plant Demo**: Data passing demonstration
+6. **Navigation Flow**: Series showing transitions between screens
+
+> **Note**: Add navigation screenshots to `assets/navigation-demo/` directory:
+> - `home-screen.png` - Main navigation hub
+> - `dashboard-screen.png` - Plant management
+> - `profile-screen.png` - User profile
+> - `about-screen.png` - App information
+> - `plant-demo-screen.png` - Data passing demo
+> - `navigation-flow-1.png` - Home to Dashboard
+> - `navigation-flow-2.png` - Dashboard back to Home
+
+---
+
 ## 🔧 Firebase Integration Setup
 
 ### 1. Dependencies

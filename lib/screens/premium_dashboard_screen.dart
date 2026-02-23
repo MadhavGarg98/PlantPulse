@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/firebase_service.dart';
 import '../services/firestore_service.dart';
+import 'profile_screen.dart';
 
 class PremiumDashboardScreen extends StatefulWidget {
   final User user;
@@ -66,10 +67,10 @@ class _PremiumDashboardScreenState extends State<PremiumDashboardScreen>
     super.dispose();
   }
 
-  Future<void> _logout() async {
-    await _authService.signOut();
-    Navigator.pushReplacementNamed(context, '/login');
-  }
+  // Future<void> _logout() async {
+  //   await _authService.signOut();
+  //   Navigator.pushReplacementNamed(context, '/login');
+  // }
 
   void _showAddPlantModal() {
     showModalBottomSheet(
@@ -220,57 +221,65 @@ class _PremiumDashboardScreenState extends State<PremiumDashboardScreen>
   }
 
   Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'PlantPulse',
-              style: GoogleFonts.inter(
-                fontSize: 32,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF1B5E20),
-                letterSpacing: -0.5,
-              ),
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'PlantPulse',
+            style: GoogleFonts.inter(
+              fontSize: 32,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF1B5E20),
+              letterSpacing: -0.5,
             ),
-            const SizedBox(height: 4),
-            Text(
-              'Your botanical sanctuary',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-                color: const Color(0xFF6B7280),
-                letterSpacing: 0.2,
-              ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Your botanical sanctuary',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFF6B7280),
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
+      ),
+
+      /// 👤 Profile Button
+      Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-        
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+        child: IconButton(
+          icon: const Icon(
+            Icons.person_outline,
+            color: Color(0xFF1B5E20),
+          ),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ProfileScreen(user: widget.user),
               ),
-            ],
-          ),
-          child: IconButton(
-            onPressed: _logout,
-            icon: const Icon(
-              Icons.logout_outlined,
-              color: Color(0xFF6B7280),
-            ),
-          ),
+            );
+          },
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
 
   Widget _buildWelcomeCard(String userName) {
     return Container(

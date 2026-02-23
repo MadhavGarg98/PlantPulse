@@ -3,12 +3,13 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'firebase_options.dart';
-import 'screens/responsive_home.dart';
+import 'screens/home_screen.dart';
+import 'screens/about_screen.dart';
+import 'screens/profile_screen.dart';
+import 'screens/plant_demo_screen.dart';
 import 'screens/premium_login_screen.dart';
 import 'screens/premium_signup_screen.dart';
 import 'screens/premium_dashboard_screen.dart';
-import 'screens/widget_tree_demo.dart';
-import 'screens/stateless_stateful_demo.dart';
 import 'services/firebase_service.dart';
 
 void main() async {
@@ -107,9 +108,20 @@ class PlantPulseApp extends StatelessWidget {
         '/': (context) => const AuthWrapper(),
         '/login': (context) => const PremiumLoginScreen(),
         '/signup': (context) => const PremiumSignupScreen(),
-        '/home': (context) => const ResponsiveHome(),
-        '/widget_demo': (context) => const WidgetTreeDemo(),
-        '/stateless_stateful_demo': (context) => const StatelessStatefulDemo(),
+        '/home': (context) {
+          final user = ModalRoute.of(context)!.settings.arguments as User?;
+          return user != null ? HomeScreen(user: user) : const AuthWrapper();
+        },
+        '/dashboard': (context) {
+          final user = ModalRoute.of(context)!.settings.arguments as User?;
+          return user != null ? PremiumDashboardScreen(user: user) : const AuthWrapper();
+        },
+        '/profile': (context) {
+          final user = ModalRoute.of(context)!.settings.arguments as User?;
+          return user != null ? ProfileScreen(user: user) : const AuthWrapper();
+        },
+        '/about': (context) => const AboutScreen(),
+        '/plant_demo': (context) => const PlantDemoScreen(),
       },
     );
   }
@@ -134,7 +146,7 @@ class AuthWrapper extends StatelessWidget {
         }
         
         if (snapshot.hasData) {
-          return PremiumDashboardScreen(user: snapshot.data!);
+          return HomeScreen(user: snapshot.data!);
         } else {
           return const PremiumLoginScreen();
         }
