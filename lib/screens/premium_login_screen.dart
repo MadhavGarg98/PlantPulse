@@ -10,15 +10,16 @@ class PremiumLoginScreen extends StatefulWidget {
   State<PremiumLoginScreen> createState() => _PremiumLoginScreenState();
 }
 
-class _PremiumLoginScreenState extends State<PremiumLoginScreen> 
+class _PremiumLoginScreenState extends State<PremiumLoginScreen>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
+
   bool _isLoading = false;
   bool _obscurePassword = true;
-  
+
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
   late AnimationController _slideController;
@@ -27,17 +28,17 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen>
   @override
   void initState() {
     super.initState();
-    
+
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
-    
+
     _slideController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -45,7 +46,7 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen>
       parent: _fadeController,
       curve: Curves.easeInOut,
     ));
-    
+
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
@@ -53,10 +54,12 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen>
       parent: _slideController,
       curve: Curves.easeOutCubic,
     ));
-    
+
     _fadeController.forward();
     Future.delayed(const Duration(milliseconds: 200), () {
-      _slideController.forward();
+      if (mounted) {
+        _slideController.forward();
+      }
     });
   }
 
@@ -72,47 +75,33 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen>
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     final user = await _authService.signIn(
       _emailController.text.trim(),
       _passwordController.text.trim(),
     );
 
-    setState(() {
-      _isLoading = false;
-    });
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
 
     if (user != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle, color: Colors.white),
-              const SizedBox(width: 10),
-              Text(
-                'Welcome back to PlantPulse!',
-                style: GoogleFonts.inter(),
-              ),
-            ],
-          ),
-          backgroundColor: const Color(0xFF1B5E20),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
+      _showSnackBar(
+        "Welcome back to PlantPulse!",
+        const Color(0xFF1B5E20),
+        Icons.check_circle,
       );
-      
+
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => 
+          pageBuilder: (_, __, ___) =>
               PremiumDashboardScreen(user: user),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          transitionsBuilder: (_, animation, __, child) {
             return SlideTransition(
               position: animation.drive(
-                Tween(begin: const Offset(1.0, 0.0), end: Offset.zero),
+                Tween(begin: const Offset(1, 0), end: Offset.zero),
               ),
               child: child,
             );
@@ -120,24 +109,31 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen>
         ),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.error, color: Colors.white),
-              const SizedBox(width: 10),
-              Text(
-                'Invalid credentials. Please try again.',
-                style: GoogleFonts.inter(),
-              ),
-            ],
-          ),
-          backgroundColor: const Color(0xFFE53935),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
+      _showSnackBar(
+        "Invalid credentials. Please try again.",
+        const Color(0xFFE53935),
+        Icons.error,
       );
     }
+  }
+
+  void _showSnackBar(String message, Color color, IconData icon) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(icon, color: Colors.white),
+            const SizedBox(width: 10),
+            Text(message, style: GoogleFonts.inter()),
+          ],
+        ),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
   }
 
   @override
@@ -148,45 +144,31 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen>
         opacity: _fadeAnimation,
         child: Stack(
           children: [
-            // Background decoration
             _buildBackground(),
-            
-            // Main content
             SafeArea(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
+                padding: const EdgeInsets.all(24),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                        const SizedBox(height: 80),
-                    
-                        // Logo section
-                        SlideTransition(
-                          position: _slideAnimation,
-                          child: _buildLogoSection(),
-                        ),
-                        
-                        const SizedBox(height: 60),
-                        
-                        // Login form
-                        SlideTransition(
-                          position: _slideAnimation,
-                          child: FadeTransition(
-                            opacity: _fadeAnimation,
-                            child: _buildLoginForm(),
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 40),
-                        
-                        // Bottom section
-                        SlideTransition(
-                          position: _slideAnimation,
-                          child: _buildBottomSection(),
-                        ),
-                      ],
+                    const SizedBox(height: 80),
+                    SlideTransition(
+                      position: _slideAnimation,
+                      child: _buildLogoSection(),
                     ),
-                  ),
+                    const SizedBox(height: 60),
+                    SlideTransition(
+                      position: _slideAnimation,
+                      child: FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: _buildLoginForm(),
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    SlideTransition(
+                      position: _slideAnimation,
+                      child: _buildBottomSection(),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -207,7 +189,8 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen>
             height: 300,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFF1B5E20).withOpacity(0.03),
+              color:
+                  const Color(0xFF1B5E20).withValues(alpha: 0.03),
             ),
           ),
         ),
@@ -219,7 +202,8 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen>
             height: 400,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFF4CAF50).withOpacity(0.02),
+              color:
+                  const Color(0xFF4CAF50).withValues(alpha: 0.02),
             ),
           ),
         ),
@@ -230,23 +214,23 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen>
   Widget _buildLogoSection() {
     return Column(
       children: [
-        // Premium logo container
         Container(
           width: 120,
           height: 120,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                const Color(0xFF1B5E20).withOpacity(0.1),
-                const Color(0xFF4CAF50).withOpacity(0.05),
+                const Color(0xFF1B5E20)
+                    .withValues(alpha: 0.1),
+                const Color(0xFF4CAF50)
+                    .withValues(alpha: 0.05),
               ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(30),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF1B5E20).withOpacity(0.08),
+                color: const Color(0xFF1B5E20)
+                    .withValues(alpha: 0.08),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -258,29 +242,21 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen>
             color: Color(0xFF1B5E20),
           ),
         ),
-        
         const SizedBox(height: 32),
-        
-        // Title
         Text(
-          'PlantPulse',
+          "PlantPulse",
           style: GoogleFonts.inter(
             fontSize: 32,
             fontWeight: FontWeight.w700,
             color: const Color(0xFF111111),
-            letterSpacing: -0.5,
           ),
         ),
-        
         const SizedBox(height: 8),
-        
         Text(
-          'Your botanical companion',
+          "Your botanical companion",
           style: GoogleFonts.inter(
             fontSize: 16,
-            fontWeight: FontWeight.w400,
             color: const Color(0xFF6B7280),
-            letterSpacing: 0.2,
           ),
         ),
       ],
@@ -295,12 +271,14 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen>
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color:
+                Colors.black.withValues(alpha: 0.06),
             blurRadius: 40,
             offset: const Offset(0, 20),
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color:
+                Colors.black.withValues(alpha: 0.04),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -309,122 +287,71 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen>
       child: Form(
         key: _formKey,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Welcome text
             Text(
-              'Welcome Back',
+              "Welcome Back",
               style: GoogleFonts.inter(
                 fontSize: 28,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFF111111),
               ),
             ),
-            
-            const SizedBox(height: 8),
-            
-            Text(
-              'Sign in to continue to your garden',
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w400,
-                color: const Color(0xFF6B7280),
-              ),
-            ),
-            
             const SizedBox(height: 32),
-            
-            // Email field
             _buildPremiumField(
               controller: _emailController,
-              label: 'Email Address',
+              label: "Email Address",
               icon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your email address';
-                }
-                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                  return 'Please enter a valid email address';
-                }
-                return null;
-              },
+              validator: (value) =>
+                  value == null || value.isEmpty
+                      ? "Please enter your email"
+                      : null,
             ),
-            
             const SizedBox(height: 24),
-            
-            // Password field
             _buildPremiumField(
               controller: _passwordController,
-              label: 'Password',
+              label: "Password",
               icon: Icons.lock_outline,
               obscureText: _obscurePassword,
               suffixIcon: IconButton(
                 icon: Icon(
-                  _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                  color: const Color(0xFF6B7280),
+                  _obscurePassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
                 ),
-                onPressed: () {
-                  setState(() {
-                    _obscurePassword = !_obscurePassword;
-                  });
-                },
+                onPressed: () =>
+                    setState(() =>
+                        _obscurePassword =
+                            !_obscurePassword),
               ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your password';
-                }
-                if (value.length < 6) {
-                  return 'Password must be at least 6 characters';
-                }
-                return null;
-              },
+              validator: (value) =>
+                  value == null || value.length < 6
+                      ? "Minimum 6 characters"
+                      : null,
             ),
-            
             const SizedBox(height: 32),
-            
-            // Login button
             SizedBox(
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: _isLoading ? null : _login,
+                onPressed:
+                    _isLoading ? null : _login,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1B5E20),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
+                  backgroundColor:
+                      const Color(0xFF1B5E20),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius:
+                        BorderRadius.circular(16),
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 child: _isLoading
-                    ? Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Signing in...',
-                            style: GoogleFonts.inter(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+                    ? const CircularProgressIndicator(
+                        color: Colors.white,
                       )
                     : Text(
-                        'Sign In',
+                        "Sign In",
                         style: GoogleFonts.inter(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                          fontWeight:
+                              FontWeight.w600,
                         ),
                       ),
               ),
@@ -444,112 +371,39 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen>
     Widget? suffixIcon,
     String? Function(String?)? validator,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: const Color(0xFF374151),
-          ),
+    return TextFormField(
+      controller: controller,
+      obscureText: obscureText,
+      keyboardType: keyboardType,
+      validator: validator,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon:
+            Icon(icon, color: const Color(0xFF6B7280)),
+        suffixIcon: suffixIcon,
+        filled: true,
+        fillColor: const Color(0xFFF9FAFB),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          obscureText: obscureText,
-          keyboardType: keyboardType,
-          validator: validator,
-          decoration: InputDecoration(
-            prefixIcon: Icon(icon, color: const Color(0xFF6B7280)),
-            suffixIcon: suffixIcon,
-            filled: true,
-            fillColor: const Color(0xFFF9FAFB),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF1B5E20), width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE53935)),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
   Widget _buildBottomSection() {
-    return Column(
-      children: [
-        // Divider
-        Row(
-          children: [
-            Expanded(
-              child: Container(
-                height: 1,
-                color: const Color(0xFFE5E7EB),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'OR',
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF6B7280),
-                ),
-              ),
-            ),
-            Expanded(
-              child: Container(
-                height: 1,
-                color: const Color(0xFFE5E7EB),
-              ),
-            ),
-          ],
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushReplacementNamed(
+            context, "/signup");
+      },
+      child: Text(
+        "Don't have an account? Sign Up",
+        style: GoogleFonts.inter(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: const Color(0xFF1B5E20),
         ),
-        
-        const SizedBox(height: 24),
-        
-        // Sign up link
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              "Don't have an account? ",
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                color: const Color(0xFF6B7280),
-              ),
-            ),
-            GestureDetector(
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/signup');
-              },
-              child: Text(
-                'Sign Up',
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF1B5E20),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
+      ),
     );
   }
 }
