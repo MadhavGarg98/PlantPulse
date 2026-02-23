@@ -10,6 +10,7 @@ import 'screens/plant_demo_screen.dart';
 import 'screens/premium_login_screen.dart';
 import 'screens/premium_signup_screen.dart';
 import 'screens/premium_dashboard_screen.dart';
+import 'screens/responsive_layout.dart';
 import 'services/firebase_service.dart';
 
 void main() async {
@@ -122,6 +123,7 @@ class PlantPulseApp extends StatelessWidget {
         },
         '/about': (context) => const AboutScreen(),
         '/plant_demo': (context) => const PlantDemoScreen(),
+        '/responsive': (context) => const ResponsiveLayout(),
       },
     );
   }

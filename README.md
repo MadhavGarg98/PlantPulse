@@ -772,4 +772,191 @@ For issues, questions, or contributions:
 
 *This project demonstrates the power of combining Flutter's reactive UI with Firebase's real-time backend capabilities for creating modern, scalable mobile applications.*
 
+---
+
+# Project Title
+Responsive Layout Design Using Rows, Columns, and Containers
+
+## Overview
+This assignment adds a new `ResponsiveLayout` screen to the existing Flutter + Firebase PlantPulse application.
+The screen demonstrates how to build a responsive user interface using `Container`, `Column`, `Row`, `Expanded`, `SizedBox`, and `MediaQuery`.
+When the screen width is less than 600 pixels, the layout stacks content vertically for phone-sized devices.
+When the screen width is 600 pixels or greater, the same content is displayed side-by-side using a horizontal row for tablet and larger displays.
+
+## Layout Structure
+
+The layout follows this widget tree:
+
+- `Scaffold`
+  - `AppBar`
+  - `Container` (padding: 16)
+    - `Column`
+      - `Header Container`
+      - `SizedBox` (vertical spacing)
+      - `Expanded`
+        - `SingleChildScrollView`
+          - **Responsive Content Section**
+            - If `screenWidth < 600`:
+              - `Column`
+                - `Content Section A` (`Container`)
+                - `SizedBox` (vertical spacing)
+                - `Content Section B` (`Container`)
+            - If `screenWidth >= 600`:
+              - `Row`
+                - `Expanded` → `Content Section A` (`Container`)
+                - `SizedBox` (horizontal spacing)
+                - `Expanded` → `Content Section B` (`Container`)
+
+This structure ensures that:
+- The header always appears at the top.
+- The content sections adapt between vertical and horizontal layouts.
+- `Expanded` is used to avoid overflow and to let sections grow into available space.
+- `MediaQuery` drives the breakpoint at 600 logical pixels of width.
+
+## Code Snippets
+
+### Container
+
+```dart
+Container(
+  padding: const EdgeInsets.all(16),
+  decoration: BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(16),
+  ),
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('Section A'),
+      const SizedBox(height: 8),
+      Text('This section is inside a Container with padding and rounded corners.'),
+    ],
+  ),
+);
+```
+
+### Column
+
+```dart
+Column(
+  crossAxisAlignment: CrossAxisAlignment.stretch,
+  children: [
+    _buildHeader(context, isSmallScreen),
+    const SizedBox(height: 16),
+    Expanded(
+      child: SingleChildScrollView(
+        child: _buildResponsiveContent(context, isSmallScreen),
+      ),
+    ),
+  ],
+);
+```
+
+### Row and Expanded
+
+```dart
+Row(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    Expanded(
+      child: _buildContentSection(
+        context,
+        title: 'Section A',
+        description: 'Displayed on the left on larger screens.',
+        icon: Icons.spa_outlined,
+        theme: theme,
+      ),
+    ),
+    const SizedBox(width: 16),
+    Expanded(
+      child: _buildContentSection(
+        context,
+        title: 'Section B',
+        description: 'Displayed on the right on larger screens.',
+        icon: Icons.eco_outlined,
+        theme: theme,
+      ),
+    ),
+  ],
+);
+```
+
+### MediaQuery
+
+```dart
+@override
+Widget build(BuildContext context) {
+  final size = MediaQuery.of(context).size;
+  final bool isSmallScreen = size.width < 600;
+
+  return Scaffold(
+    appBar: AppBar(
+      title: const Text('Responsive Layout Demo'),
+    ),
+    body: Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _buildHeader(context, isSmallScreen),
+          // The rest of the responsive content...
+        ],
+      ),
+    ),
+  );
+}
+```
+
+## Screenshots
+
+- Small screen (phone) screenshot: `assets/screenshots/responsive_small.png` (placeholder)
+- Large screen (tablet) screenshot: `assets/screenshots/responsive_large.png` (placeholder)
+
+> Replace the above paths with your actual screenshot file locations once captured.
+
+## Reflection
+
+**Why is responsiveness important?**  
+Responsiveness ensures that the same Flutter UI works across many devices and orientations without rewriting layouts for each case.
+A responsive design improves usability, readability, and accessibility by adapting the placement and size of widgets to the available screen space.
+
+**Challenges faced?**  
+The main challenge was managing layout changes between vertical (Column) and horizontal (Row) configurations while avoiding overflow errors.
+Choosing the right breakpoint (600 pixels in this assignment) and testing on different emulators was important to verify that the layout felt natural on both phones and tablets.
+Another challenge was balancing visual design (padding, spacing, and shadows) with flexibility so that no hard-coded sizes would break the UI on extreme aspect ratios.
+
+**Improvements for orientation support?**  
+Orientation support can be improved by additionally checking `MediaQuery.of(context).orientation` and adjusting padding, font size, or the number of visible sections.
+For example, in landscape mode on a phone, we could still use a horizontal `Row` even if the width is just under 600, or show more detailed text when more horizontal space is available.
+We could also adjust the scroll behavior and relative sizes (using `Flexible` or different `Expanded` flex values) to better use vertical vs horizontal space.
+
+## How to Run
+
+1. **Install dependencies**
+   - Ensure Flutter SDK is installed and configured.
+   - Run `flutter pub get` in the project root.
+
+2. **Run on a small screen (phone) emulator**
+   - Create or select an Android/iOS phone emulator (e.g., Pixel 4, iPhone 13).
+   - Run:
+     ```bash
+     flutter run
+     ```
+   - From your app, navigate to the route:
+     ```dart
+     Navigator.of(context).pushNamed('/responsive');
+     ```
+   - Observe that the content sections are stacked vertically in a `Column`.
+
+3. **Run on a large screen (tablet) emulator**
+   - Create or select a tablet emulator (e.g., Pixel C, iPad).
+   - Run:
+     ```bash
+     flutter run
+     ```
+   - Navigate again to `'/responsive'`.
+   - Observe that the content sections are now displayed side-by-side in a `Row` using `Expanded`.
+
+4. **Optional quick test via initialRoute (do not commit)**
+   - Temporarily change `initialRoute` in `main.dart` from `'/'` to `'/responsive'` to launch directly into the responsive layout.
+   - After verifying its behavior, revert `initialRoute` back to `'/'` to restore the original authentication flow.
 
