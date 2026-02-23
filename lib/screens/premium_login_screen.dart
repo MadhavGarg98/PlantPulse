@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/firebase_service.dart';
-import 'premium_dashboard_screen.dart';
+import 'dashboard.dart';
 
 class PremiumLoginScreen extends StatefulWidget {
   const PremiumLoginScreen({super.key});
@@ -97,7 +97,7 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen>
         context,
         PageRouteBuilder(
           pageBuilder: (_, __, ___) =>
-              PremiumDashboardScreen(user: user),
+              DashboardScreen(user: user),
           transitionsBuilder: (_, animation, __, child) {
             return SlideTransition(
               position: animation.drive(

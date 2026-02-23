@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/firebase_service.dart';
+import 'dashboard.dart';
 
 class PremiumSignupScreen extends StatefulWidget {
   const PremiumSignupScreen({super.key});
@@ -109,7 +110,12 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen>
         ),
       );
       
-      Navigator.pushReplacementNamed(context, '/login');
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => DashboardScreen(user: user),
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

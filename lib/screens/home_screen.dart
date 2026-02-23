@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'about_screen.dart';
 import 'profile_screen.dart';
-import 'premium_dashboard_screen.dart';
+import 'dashboard.dart';
 
 class HomeScreen extends StatelessWidget {
   final User user;

@@ -9,7 +9,7 @@ import 'screens/profile_screen.dart';
 import 'screens/plant_demo_screen.dart';
 import 'screens/premium_login_screen.dart';
 import 'screens/premium_signup_screen.dart';
-import 'screens/premium_dashboard_screen.dart';
+import 'screens/dashboard.dart';
 import 'screens/responsive_layout.dart';
 import 'services/firebase_service.dart';
 
@@ -115,7 +115,7 @@ class PlantPulseApp extends StatelessWidget {
         },
         '/dashboard': (context) {
           final user = ModalRoute.of(context)!.settings.arguments as User?;
-          return user != null ? PremiumDashboardScreen(user: user) : const AuthWrapper();
+          return user != null ? DashboardScreen(user: user) : const AuthWrapper();
         },
         '/profile': (context) {
           final user = ModalRoute.of(context)!.settings.arguments as User?;
@@ -148,7 +148,7 @@ class AuthWrapper extends StatelessWidget {
         }
         
         if (snapshot.hasData) {
-          return HomeScreen(user: snapshot.data!);
+          return DashboardScreen(user: snapshot.data!);
         } else {
           return const PremiumLoginScreen();
         }
