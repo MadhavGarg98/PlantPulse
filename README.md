@@ -960,3 +960,121 @@ We could also adjust the scroll behavior and relative sizes (using `Flexible` or
    - Temporarily change `initialRoute` in `main.dart` from `'/'` to `'/responsive'` to launch directly into the responsive layout.
    - After verifying its behavior, revert `initialRoute` back to `'/'` to restore the original authentication flow.
 
+
+---
+
+# Project Title
+User Input Form & Validation in Flutter
+
+## Overview
+This assignment adds a new `UserInputForm` screen that demonstrates handling user input using `TextFormField`, buttons, and `Form` widgets in Flutter.
+The screen contains a form with name and email fields, validation using a `GlobalKey<FormState>`, and feedback using `SnackBar` on successful submission.
+Error messages are displayed directly under each field when validation fails, providing a clear example of form validation patterns.
+
+## Code Snippets
+
+### TextFormField example
+
+```dart
+TextFormField(
+  controller: _nameController,
+  decoration: const InputDecoration(
+    labelText: 'Name',
+    hintText: 'Enter your full name',
+  ),
+  validator: (value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Name is required';
+    }
+    return null;
+  },
+);
+```
+
+### Validator logic with FormState
+
+```dart
+final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+void _submitForm() {
+  final formState = _formKey.currentState;
+  if (formState != null && formState.validate()) {
+    // All validators passed, proceed with submission
+  }
+}
+```
+
+### ElevatedButton submission logic
+
+```dart
+SizedBox(
+  height: 48,
+  child: ElevatedButton(
+    onPressed: _submitForm,
+    child: const Text('Submit'),
+  ),
+);
+```
+
+### SnackBar usage
+
+```dart
+void _submitForm() {
+  final formState = _formKey.currentState;
+  if (formState != null && formState.validate()) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Form submitted successfully!'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+}
+```
+
+## Screenshots
+
+- Validation error screenshot: `assets/screenshots/user_form_error.png` (placeholder)
+- Successful submission screenshot: `assets/screenshots/user_form_success.png` (placeholder)
+
+> Replace the above paths with your actual screenshot file locations once captured.
+
+## Reflection
+
+**Benefits of input validation**  
+Input validation prevents invalid or incomplete data from entering the system, improving data quality and reducing runtime errors further down the flow.
+It also guides users to correct mistakes early by showing clear error messages under the fields.
+
+**How FormState simplifies validation**  
+Using `Form` with a `GlobalKey<FormState>` allows all field validators to run together through a single `validate()` call.
+This centralizes validation logic, keeps the UI code clean, and avoids manually checking every controller before submission.
+
+**How SnackBar improves UX**  
+`SnackBar` provides non-intrusive, time-limited feedback that confirms successful actions or highlights important information.
+In this assignment, the success SnackBar reassures the user that their data passed validation without navigating away or showing a blocking dialog.
+
+## How to Run
+
+1. **Install dependencies**
+   - Ensure Flutter SDK is installed and configured.
+   - Run `flutter pub get` in the project root.
+
+2. **Run the application**
+   - Start an emulator or connect a physical device.
+   - Run:
+     ```bash
+     flutter run
+     ```
+
+3. **Navigate to the user input form**
+   - From any screen with access to a `BuildContext`, use:
+     ```dart
+     Navigator.of(context).pushNamed('/user-form');
+     ```
+   - Alternatively, for assignment testing only (do not commit), you may temporarily set:
+     ```dart
+     // main.dart (FOR LOCAL TESTING ONLY)
+     // initialRoute: '/user-form',
+     ```
+     and revert it back to `'/'` after verifying the screen.
+

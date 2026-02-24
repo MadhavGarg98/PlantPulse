@@ -11,6 +11,7 @@ import 'screens/premium_login_screen.dart';
 import 'screens/premium_signup_screen.dart';
 import 'screens/dashboard.dart';
 import 'screens/responsive_layout.dart';
+import 'screens/user_input_form.dart';
 import 'services/firebase_service.dart';
 
 void main() async {
@@ -124,6 +125,7 @@ class PlantPulseApp extends StatelessWidget {
         '/about': (context) => const AboutScreen(),
         '/plant_demo': (context) => const PlantDemoScreen(),
         '/responsive': (context) => const ResponsiveLayout(),
+        '/user-form': (context) => const UserInputForm(),
       },
     );
   }
