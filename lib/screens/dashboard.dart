@@ -6,6 +6,7 @@ import '../services/firestore_service.dart';
 import 'profile_screen.dart';
 import 'home_screen.dart';
 import 'premium_login_screen.dart';
+import 'scrollable_views.dart';
 
 class DashboardScreen extends StatefulWidget {
   final User user;
@@ -449,14 +450,31 @@ class _DashboardScreenState extends State<DashboardScreen>
       children: [
         Row(
           children: [
-            Text("My Plants",
-                style: GoogleFonts.inter(
-                    fontSize: 18, fontWeight: FontWeight.w500)),
+            Text(
+              "My Plants",
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
             const Spacer(),
-            Text("See All",
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ScrollableViews(),
+                  ),
+                );
+              },
+              child: Text(
+                "See All",
                 style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: const Color(0xFF1B5E20))),
+                  fontSize: 14,
+                  color: const Color(0xFF1B5E20),
+                ),
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 16),
