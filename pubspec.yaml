@@ -11,6 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
+  rive: ^0.13.4
   
   # Firebase dependencies
   firebase_core: ^3.0.0
@@ -37,6 +38,7 @@ flutter:
     - assets/
     - assets/images/
     - assets/animations/
+    - assets/animations/plant_login.riv
 
 flutter_launcher_icons:
   android: true
