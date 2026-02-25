@@ -1273,3 +1273,146 @@ In this assignment, the success SnackBar reassures the user that their data pass
 
 This approach to custom widget development has significantly improved the PlantPulse codebase's maintainability, consistency, and development velocity while establishing a solid foundation for future feature development.
 
+
+---
+
+# Project Title
+Responsive Design with MediaQuery and LayoutBuilder
+
+## Overview
+This assignment adds an adaptive layout demo screen that uses both `MediaQuery` and `LayoutBuilder` to adjust the UI based on the current screen size.
+On narrow (mobile) widths, content is stacked vertically in a `Column`, while on wider (tablet) widths, the same content is arranged horizontally in a `Row`.
+Containers use proportional widths based on the available constraints instead of fixed pixel values, helping the design scale cleanly across devices.
+
+## Code Snippets
+
+### MediaQuery usage
+
+```dart
+@override
+Widget build(BuildContext context) {
+  final mediaQuery = MediaQuery.of(context);
+  final Size screenSize = mediaQuery.size;
+  final double screenWidth = screenSize.width;
+  final double screenHeight = screenSize.height;
+
+  // screenWidth and screenHeight are used for displaying information
+  // and reasoning about responsive breakpoints.
+  return Scaffold(
+    // ...
+  );
+}
+```
+
+### LayoutBuilder usage and conditional layout switching
+
+```dart
+body: SafeArea(
+  child: LayoutBuilder(
+    builder: (context, constraints) {
+      final double maxWidth = constraints.maxWidth;
+      final bool isMobile = maxWidth < 600; // breakpoint at 600px
+
+      return SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Column(
+          children: [
+            // Switch between Column (mobile) and Row (tablet)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: isMobile ? mobileLayout : tabletLayout,
+            ),
+          ],
+        ),
+      );
+    },
+  ),
+),
+```
+
+### Proportional container sizing
+
+```dart
+builder: (context, constraints) {
+  final double maxWidth = constraints.maxWidth;
+
+  // Card width is 80% of available width, capped to avoid over-expansion
+  final double cardWidth = (maxWidth * 0.8).clamp(0.0, 600.0);
+
+  Widget card(String title, String description, Color color) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxWidth: cardWidth,
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title),
+            const SizedBox(height: 8),
+            Text(description),
+          ],
+        ),
+      ),
+    );
+  }
+  // ...
+}
+```
+
+## Screenshots
+
+- Mobile view screenshot: `assets/screenshots/adaptive_mobile.png` (placeholder)
+- Tablet view screenshot: `assets/screenshots/adaptive_tablet.png` (placeholder)
+
+> Replace the above paths with your actual screenshot file locations once captured.
+
+## Reflection
+
+**How does MediaQuery improve scaling?**  
+`MediaQuery` exposes information about the current device, such as screen width and height, which helps choose sensible breakpoints and understand how much space is available.
+By reading these values, layouts can avoid hardcoded assumptions and instead adapt padding, font sizes, or component visibility based on the actual screen size.
+
+**How does LayoutBuilder enable structural adaptation?**  
+`LayoutBuilder` provides the `BoxConstraints` for its child, including `constraints.maxWidth`, which reflects the space actually available to that part of the widget tree.
+Using this, the UI can switch between different structures (e.g., `Column` vs `Row`) at specific width thresholds while still respecting parent constraints.
+
+**Why is responsive design crucial in real-world Flutter apps?**  
+Flutter apps run on phones, tablets, desktop, and web, all with very different screen sizes and aspect ratios.
+Responsive design ensures that the same codebase produces usable, aesthetically pleasing layouts everywhere, reducing the need for platform-specific forks.
+
+**Challenges faced while testing different screen sizes**  
+Testing required running the app on multiple emulators and sometimes resizing windows to hit specific breakpoints around the 600px width.
+It was important to verify that no overflow occurred at intermediate sizes and that the transition from Column to Row felt natural, especially in landscape orientation.
+
+## How to Test
+
+1. **Run on a mobile-sized emulator**
+   - Start an Android or iOS phone emulator.
+   - Run:
+     ```bash
+     flutter run
+     ```
+   - From any screen with access to a `BuildContext`, navigate to:
+     ```dart
+     Navigator.of(context).pushNamed('/adaptive-demo');
+     ```
+   - Confirm that the layout uses a vertical `Column` with stacked containers.
+
+2. **Run on a tablet-sized emulator**
+   - Start a tablet emulator (for example, an iPad or large Android tablet profile).
+   - Run the same build and navigate again to `'/adaptive-demo'`.
+   - Confirm that the layout now uses a horizontal `Row` with two containers arranged side-by-side, sized proportionally using the available width.
+
+3. **Optional quick test via initialRoute (do not commit)**
+   - For local testing only, you may temporarily change in `main.dart`:
+     ```dart
+     // initialRoute: '/adaptive-demo', // FOR LOCAL TESTING ONLY
+     ```
+   - After verifying the behavior, revert `initialRoute` back to `'/'` to restore the original authentication flow.
+
