@@ -12,6 +12,7 @@ import 'screens/premium_signup_screen.dart';
 import 'screens/dashboard.dart';
 import 'screens/responsive_layout.dart';
 import 'screens/user_input_form.dart';
+import 'screens/custom_widgets_demo.dart';
 import 'services/firebase_service.dart';
 
 void main() async {
@@ -110,6 +111,7 @@ class PlantPulseApp extends StatelessWidget {
         '/': (context) => const AuthWrapper(),
         '/login': (context) => const PremiumLoginScreen(),
         '/signup': (context) => const PremiumSignupScreen(),
+        '/demo': (context) => const CustomWidgetsDemo(),
         '/home': (context) {
           final user = ModalRoute.of(context)!.settings.arguments as User?;
           return user != null ? HomeScreen(user: user) : const AuthWrapper();
