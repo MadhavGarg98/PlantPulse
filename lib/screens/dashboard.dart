@@ -65,15 +65,6 @@ class _DashboardScreenState extends State<DashboardScreen>
         isHealthy: true,
       ),
       Plant(
-        id: '2',
-        name: 'Peace Lily',
-        scientificName: 'Spathiphyllum',
-        lastWatered: DateTime.now().subtract(const Duration(days: 1)),
-        imageUrl:
-            'https://images.unsplash.com/photo-1520302630521-3db954e9e0c7',
-        isHealthy: true,
-      ),
-      Plant(
         id: '3',
         name: 'Snake Plant',
         scientificName: 'Sansevieria',
@@ -311,44 +302,43 @@ class _DashboardScreenState extends State<DashboardScreen>
   // TODAY CARE
   // -------------------------
   Widget _buildTodaysCare() {
-    final needsCare = _plantsNeedingCare;
+  final allPlants = _plants;
+  final remaining = _plantsNeedingCare.length;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text("Today's Care",
-                style: GoogleFonts.inter(
-                    fontSize: 18, fontWeight: FontWeight.w500)),
-            const SizedBox(width: 8),
-            if (needsCare.isNotEmpty)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  "${needsCare.length} remaining",
-                  style: GoogleFonts.inter(fontSize: 12),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        if (needsCare.isEmpty)
-          _buildSuccessState()
-        else
-          Column(
-            children: needsCare
-                .map((plant) => _buildCareCard(plant))
-                .toList(),
-          )
-      ],
-    );
-  }
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        children: [
+          Text(
+            "Today's Care",
+            style: GoogleFonts.inter(
+                fontSize: 18, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              "$remaining remaining",
+              style: GoogleFonts.inter(fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 16),
+      Column(
+        children: allPlants
+            .map((plant) => _buildCareCard(plant))
+            .toList(),
+      ),
+    ],
+  );
+}
 
   Widget _buildSuccessState() {
     final hour = DateTime.now().hour;
@@ -392,54 +382,67 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Widget _buildCareCard(Plant plant) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              plant.imageUrl,
-              width: 60,
-              height: 60,
-              fit: BoxFit.cover,
-            ),
+  final isWateredToday = plant.lastWatered
+      .isAfter(DateTime.now().subtract(const Duration(days: 2)));
+
+  return AnimatedContainer(
+    duration: const Duration(milliseconds: 400),
+    margin: const EdgeInsets.only(bottom: 16),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: isWateredToday
+          ? const Color(0xFFE8F5E9)
+          : Colors.white,
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Row(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.network(
+            plant.imageUrl,
+            width: 60,
+            height: 60,
+            fit: BoxFit.cover,
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(plant.name,
-                    style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600)),
-                Text(plant.scientificName,
-                    style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: Colors.grey[600])),
-              ],
-            ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                plant.name,
+                style: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600),
+              ),
+              Text(
+                plant.scientificName,
+                style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: Colors.grey[600]),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => _waterPlant(plant),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1B5E20),
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text("Water"),
-          )
-        ],
-      ),
-    );
-  }
+        ),
+        ElevatedButton(
+          onPressed: isWateredToday
+              ? null
+              : () => _waterPlant(plant),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: isWateredToday
+                ? Colors.grey
+                : const Color(0xFF1B5E20),
+          ),
+          child: Text(
+            isWateredToday ? "Watered" : "Water",
+          ),
+        )
+      ],
+    ),
+  );
+}
 
   // -------------------------
   // MY PLANTS GRID
