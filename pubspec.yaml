@@ -39,6 +39,7 @@ flutter:
     - assets/images/
     - assets/animations/
     - assets/animations/plant_login.riv
+    - assets/images/plant_3d.png
 
 flutter_launcher_icons:
   android: true
