@@ -13,6 +13,103 @@ PlantPulse is a comprehensive Flutter application that demonstrates modern mobil
 - **Reactive UI Development** - StreamBuilder for real-time updates
 - **Cross-platform Compatibility** - Android, iOS, Web, and Desktop support
 - **Material Design 3** - Modern, responsive UI components
+- **Custom Reusable Widgets** - Modular UI components for consistent design
+
+---
+
+## 🎨 Custom Widgets Implementation
+
+### Overview
+PlantPulse features a comprehensive set of custom reusable widgets that demonstrate Flutter's widget composition capabilities. These widgets follow the DRY (Don't Repeat Yourself) principle and provide consistent UI across the application.
+
+### 📦 Available Custom Widgets
+
+#### 1. CustomButton (Stateless Widget)
+A premium-styled button with loading states and customizable colors.
+
+**Features:**
+- Customizable label and colors
+- Loading state with spinner
+- Consistent premium styling
+- Optional width and height parameters
+
+**Usage:**
+```dart
+CustomButton(
+  label: 'Sign In',
+  onPressed: () => print('Button pressed'),
+  isLoading: false,
+  color: Color(0xFF1B5E20),
+  width: double.infinity,
+)
+```
+
+#### 2. PlantCard (Stateless Widget)
+A reusable card component for displaying plant information with images and status indicators.
+
+**Features:**
+- Plant image display with fallback handling
+- Health status badges
+- Water schedule information
+- Tap interactions
+- Premium card design with shadows
+
+**Usage:**
+```dart
+PlantCard(
+  name: 'Monstera',
+  type: 'Monstera Deliciosa',
+  imageUrl: 'https://example.com/image.jpg',
+  waterSchedule: '3 days',
+  healthStatus: 'Healthy',
+  onTap: () => print('Plant tapped'),
+)
+```
+
+#### 3. StatCard (Stateless Widget)
+A statistics card for displaying metrics with icons and optional navigation.
+
+**Features:**
+- Icon-based visual indicators
+- Customizable colors
+- Optional tap navigation
+- Subtitle support
+- Premium card design
+
+**Usage:**
+```dart
+StatCard(
+  title: 'Total Plants',
+  value: '24',
+  icon: Icons.eco,
+  color: Colors.green,
+  subtitle: 'Last 30 days',
+  onTap: () => print('Stats tapped'),
+)
+```
+
+#### 4. LikeButton (Stateful Widget)
+An interactive like button with animations and state management.
+
+**Features:**
+- Animated like/unlike transitions
+- Customizable colors and sizes
+- State management with callbacks
+- Elastic animation effects
+- Visual feedback
+
+**Usage:**
+```dart
+LikeButton(
+  isLiked: _isLiked,
+  onChanged: (liked) {
+    setState(() => _isLiked = liked);
+    // Handle like state change
+  },
+  size: 24,
+  activeColor: Colors.red,
+)
+```
 
 ---
 
@@ -772,4 +869,550 @@ For issues, questions, or contributions:
 
 *This project demonstrates the power of combining Flutter's reactive UI with Firebase's real-time backend capabilities for creating modern, scalable mobile applications.*
 
+---
+
+# Project Title
+Responsive Layout Design Using Rows, Columns, and Containers
+
+## Overview
+This assignment adds a new `ResponsiveLayout` screen to the existing Flutter + Firebase PlantPulse application.
+The screen demonstrates how to build a responsive user interface using `Container`, `Column`, `Row`, `Expanded`, `SizedBox`, and `MediaQuery`.
+When the screen width is less than 600 pixels, the layout stacks content vertically for phone-sized devices.
+When the screen width is 600 pixels or greater, the same content is displayed side-by-side using a horizontal row for tablet and larger displays.
+
+## Layout Structure
+
+The layout follows this widget tree:
+
+- `Scaffold`
+  - `AppBar`
+  - `Container` (padding: 16)
+    - `Column`
+      - `Header Container`
+      - `SizedBox` (vertical spacing)
+      - `Expanded`
+        - `SingleChildScrollView`
+          - **Responsive Content Section**
+            - If `screenWidth < 600`:
+              - `Column`
+                - `Content Section A` (`Container`)
+                - `SizedBox` (vertical spacing)
+                - `Content Section B` (`Container`)
+            - If `screenWidth >= 600`:
+              - `Row`
+                - `Expanded` → `Content Section A` (`Container`)
+                - `SizedBox` (horizontal spacing)
+                - `Expanded` → `Content Section B` (`Container`)
+
+This structure ensures that:
+- The header always appears at the top.
+- The content sections adapt between vertical and horizontal layouts.
+- `Expanded` is used to avoid overflow and to let sections grow into available space.
+- `MediaQuery` drives the breakpoint at 600 logical pixels of width.
+
+## Code Snippets
+
+### Container
+
+```dart
+Container(
+  padding: const EdgeInsets.all(16),
+  decoration: BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(16),
+  ),
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('Section A'),
+      const SizedBox(height: 8),
+      Text('This section is inside a Container with padding and rounded corners.'),
+    ],
+  ),
+);
+```
+
+### Column
+
+```dart
+Column(
+  crossAxisAlignment: CrossAxisAlignment.stretch,
+  children: [
+    _buildHeader(context, isSmallScreen),
+    const SizedBox(height: 16),
+    Expanded(
+      child: SingleChildScrollView(
+        child: _buildResponsiveContent(context, isSmallScreen),
+      ),
+    ),
+  ],
+);
+```
+
+### Row and Expanded
+
+```dart
+Row(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    Expanded(
+      child: _buildContentSection(
+        context,
+        title: 'Section A',
+        description: 'Displayed on the left on larger screens.',
+        icon: Icons.spa_outlined,
+        theme: theme,
+      ),
+    ),
+    const SizedBox(width: 16),
+    Expanded(
+      child: _buildContentSection(
+        context,
+        title: 'Section B',
+        description: 'Displayed on the right on larger screens.',
+        icon: Icons.eco_outlined,
+        theme: theme,
+      ),
+    ),
+  ],
+);
+```
+
+### MediaQuery
+
+```dart
+@override
+Widget build(BuildContext context) {
+  final size = MediaQuery.of(context).size;
+  final bool isSmallScreen = size.width < 600;
+
+  return Scaffold(
+    appBar: AppBar(
+      title: const Text('Responsive Layout Demo'),
+    ),
+    body: Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _buildHeader(context, isSmallScreen),
+          // The rest of the responsive content...
+        ],
+      ),
+    ),
+  );
+}
+```
+
+## Screenshots
+
+- Small screen (phone) screenshot: `assets/screenshots/responsive_small.png` (placeholder)
+- Large screen (tablet) screenshot: `assets/screenshots/responsive_large.png` (placeholder)
+
+> Replace the above paths with your actual screenshot file locations once captured.
+
+## Reflection
+
+**Why is responsiveness important?**  
+Responsiveness ensures that the same Flutter UI works across many devices and orientations without rewriting layouts for each case.
+A responsive design improves usability, readability, and accessibility by adapting the placement and size of widgets to the available screen space.
+
+**Challenges faced?**  
+The main challenge was managing layout changes between vertical (Column) and horizontal (Row) configurations while avoiding overflow errors.
+Choosing the right breakpoint (600 pixels in this assignment) and testing on different emulators was important to verify that the layout felt natural on both phones and tablets.
+Another challenge was balancing visual design (padding, spacing, and shadows) with flexibility so that no hard-coded sizes would break the UI on extreme aspect ratios.
+
+**Improvements for orientation support?**  
+Orientation support can be improved by additionally checking `MediaQuery.of(context).orientation` and adjusting padding, font size, or the number of visible sections.
+For example, in landscape mode on a phone, we could still use a horizontal `Row` even if the width is just under 600, or show more detailed text when more horizontal space is available.
+We could also adjust the scroll behavior and relative sizes (using `Flexible` or different `Expanded` flex values) to better use vertical vs horizontal space.
+
+## How to Run
+
+1. **Install dependencies**
+   - Ensure Flutter SDK is installed and configured.
+   - Run `flutter pub get` in the project root.
+
+2. **Run on a small screen (phone) emulator**
+   - Create or select an Android/iOS phone emulator (e.g., Pixel 4, iPhone 13).
+   - Run:
+     ```bash
+     flutter run
+     ```
+   - From your app, navigate to the route:
+     ```dart
+     Navigator.of(context).pushNamed('/responsive');
+     ```
+   - Observe that the content sections are stacked vertically in a `Column`.
+
+3. **Run on a large screen (tablet) emulator**
+   - Create or select a tablet emulator (e.g., Pixel C, iPad).
+   - Run:
+     ```bash
+     flutter run
+     ```
+   - Navigate again to `'/responsive'`.
+   - Observe that the content sections are now displayed side-by-side in a `Row` using `Expanded`.
+
+4. **Optional quick test via initialRoute (do not commit)**
+   - Temporarily change `initialRoute` in `main.dart` from `'/'` to `'/responsive'` to launch directly into the responsive layout.
+   - After verifying its behavior, revert `initialRoute` back to `'/'` to restore the original authentication flow.
+
+
+---
+
+# Project Title
+User Input Form & Validation in Flutter
+
+## Overview
+This assignment adds a new `UserInputForm` screen that demonstrates handling user input using `TextFormField`, buttons, and `Form` widgets in Flutter.
+The screen contains a form with name and email fields, validation using a `GlobalKey<FormState>`, and feedback using `SnackBar` on successful submission.
+Error messages are displayed directly under each field when validation fails, providing a clear example of form validation patterns.
+
+## Code Snippets
+
+### TextFormField example
+
+```dart
+TextFormField(
+  controller: _nameController,
+  decoration: const InputDecoration(
+    labelText: 'Name',
+    hintText: 'Enter your full name',
+  ),
+  validator: (value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Name is required';
+    }
+    return null;
+  },
+);
+```
+
+### Validator logic with FormState
+
+```dart
+final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+void _submitForm() {
+  final formState = _formKey.currentState;
+  if (formState != null && formState.validate()) {
+    // All validators passed, proceed with submission
+  }
+}
+```
+
+### ElevatedButton submission logic
+
+```dart
+SizedBox(
+  height: 48,
+  child: ElevatedButton(
+    onPressed: _submitForm,
+    child: const Text('Submit'),
+  ),
+);
+```
+
+### SnackBar usage
+
+```dart
+void _submitForm() {
+  final formState = _formKey.currentState;
+  if (formState != null && formState.validate()) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Form submitted successfully!'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+}
+```
+
+## Screenshots
+
+- Validation error screenshot: `assets/screenshots/user_form_error.png` (placeholder)
+- Successful submission screenshot: `assets/screenshots/user_form_success.png` (placeholder)
+
+> Replace the above paths with your actual screenshot file locations once captured.
+
+## Reflection
+
+**Benefits of input validation**  
+Input validation prevents invalid or incomplete data from entering the system, improving data quality and reducing runtime errors further down the flow.
+It also guides users to correct mistakes early by showing clear error messages under the fields.
+
+**How FormState simplifies validation**  
+Using `Form` with a `GlobalKey<FormState>` allows all field validators to run together through a single `validate()` call.
+This centralizes validation logic, keeps the UI code clean, and avoids manually checking every controller before submission.
+
+**How SnackBar improves UX**  
+`SnackBar` provides non-intrusive, time-limited feedback that confirms successful actions or highlights important information.
+In this assignment, the success SnackBar reassures the user that their data passed validation without navigating away or showing a blocking dialog.
+
+## How to Run
+
+1. **Install dependencies**
+   - Ensure Flutter SDK is installed and configured.
+   - Run `flutter pub get` in the project root.
+
+2. **Run the application**
+   - Start an emulator or connect a physical device.
+   - Run:
+     ```bash
+     flutter run
+     ```
+
+3. **Navigate to the user input form**
+   - From any screen with access to a `BuildContext`, use:
+     ```dart
+     Navigator.of(context).pushNamed('/user-form');
+     ```
+   - Alternatively, for assignment testing only (do not commit), you may temporarily set:
+     ```dart
+     // main.dart (FOR LOCAL TESTING ONLY)
+     // initialRoute: '/user-form',
+     ```
+     and revert it back to `'/'` after verifying the screen.
+
+---
+
+## 🤔 Reflection: Custom Widgets Implementation
+
+### How Reusable Widgets Improve Development Efficiency
+
+**1. Code Reusability & DRY Principle**
+- **Single Source of Truth**: Each widget is defined once and reused multiple times
+- **Reduced Boilerplate**: Eliminates repetitive UI code across screens
+- **Faster Development**: New features can be built using existing components
+- **Consistent Updates**: Changes to widget design propagate automatically
+
+**2. Maintainability & Scalability**
+- **Centralized Logic**: Widget behavior is managed in one place
+- **Easy Debugging**: Issues can be traced to specific widget files
+- **Version Control**: Changes to UI components are tracked separately
+- **Team Collaboration**: Different developers can work on different widgets simultaneously
+
+**3. Design Consistency**
+- **Brand Cohesion**: Consistent colors, typography, and spacing
+- **User Experience**: Predictable interactions across the app
+- **Professional Quality**: Uniform design language throughout
+
+### Challenges Faced While Designing Modular Components
+
+**1. Widget Parameterization**
+- **Challenge**: Balancing flexibility with simplicity
+- **Solution**: Careful parameter design with sensible defaults
+- **Learning**: Too many parameters make widgets complex, too few limit reusability
+
+**2. State Management in Custom Widgets**
+- **Challenge**: Deciding between StatelessWidget vs StatefulWidget
+- **Solution**: Stateless for static content, Stateful for interactive elements
+- **Learning**: LikeButton required StatefulWidget for animation and state
+
+**3. Animation Integration**
+- **Challenge**: Implementing smooth animations without breaking widget composition
+- **Solution**: Using AnimationController with proper lifecycle management
+- **Learning**: SingleTickerProviderStateMixin vs TickerProviderStateMixin for multiple animations
+
+**4. Error Handling & Edge Cases**
+- **Challenge**: Handling image loading failures, null values, and unexpected inputs
+- **Solution**: Graceful fallbacks and validation within widgets
+- **Learning**: PlantCard includes error handling for network images
+
+**5. Performance Considerations**
+- **Challenge**: Ensuring widgets don't cause unnecessary rebuilds
+- **Solution**: Proper use of const constructors and efficient build methods
+- **Learning**: Understanding Flutter's widget diffing algorithm
+
+### How Teams Can Apply This Approach
+
+**1. Component Library Development**
+- **Create Design System**: Establish color palette, typography, spacing standards
+- **Build Core Components**: Start with essential widgets (buttons, cards, inputs)
+- **Document Usage**: Maintain comprehensive documentation with examples
+- **Version Control**: Use semantic versioning for widget updates
+
+**2. Development Workflow Integration**
+- **Widget-First Approach**: Design reusable components before building screens
+- **Code Reviews**: Focus on widget reusability and consistency
+- **Testing Strategy**: Unit tests for widget behavior and integration tests for UI
+- **Performance Monitoring**: Track widget rebuilds and render performance
+
+**3. Team Collaboration Benefits**
+- **Parallel Development**: Multiple developers can work on different widgets
+- **Skill Specialization**: Team members can specialize in widget development
+- **Knowledge Sharing**: Widget library serves as learning resource
+- **Quality Assurance**: Consistent quality across all team members' work
+
+**4. Project Scalability**
+- **Rapid Prototyping**: New features can be built quickly using existing widgets
+- **Cross-Platform Consistency**: Same widgets work across all supported platforms
+- **Easy Maintenance**: Updates to design system require changes in one place
+- **Future-Proofing**: Well-designed widgets can be extended for new requirements
+
+### Best Practices Established
+
+**1. Widget Design Principles**
+- Keep widgets focused on single responsibility
+- Use meaningful parameter names and provide defaults
+- Include proper error handling and loading states
+- Document widget usage with examples
+
+**2. Code Organization**
+- Separate widgets into logical categories (buttons, cards, forms)
+- Use clear naming conventions
+- Maintain consistent file structure
+- Include comprehensive README documentation
+
+**3. Testing Strategy**
+- Test widgets in isolation
+- Verify widget composition
+- Test edge cases and error states
+- Include visual regression testing
+
+This approach to custom widget development has significantly improved the PlantPulse codebase's maintainability, consistency, and development velocity while establishing a solid foundation for future feature development.
+
+
+---
+
+# Project Title
+Responsive Design with MediaQuery and LayoutBuilder
+
+## Overview
+This assignment adds an adaptive layout demo screen that uses both `MediaQuery` and `LayoutBuilder` to adjust the UI based on the current screen size.
+On narrow (mobile) widths, content is stacked vertically in a `Column`, while on wider (tablet) widths, the same content is arranged horizontally in a `Row`.
+Containers use proportional widths based on the available constraints instead of fixed pixel values, helping the design scale cleanly across devices.
+
+## Code Snippets
+
+### MediaQuery usage
+
+```dart
+@override
+Widget build(BuildContext context) {
+  final mediaQuery = MediaQuery.of(context);
+  final Size screenSize = mediaQuery.size;
+  final double screenWidth = screenSize.width;
+  final double screenHeight = screenSize.height;
+
+  // screenWidth and screenHeight are used for displaying information
+  // and reasoning about responsive breakpoints.
+  return Scaffold(
+    // ...
+  );
+}
+```
+
+### LayoutBuilder usage and conditional layout switching
+
+```dart
+body: SafeArea(
+  child: LayoutBuilder(
+    builder: (context, constraints) {
+      final double maxWidth = constraints.maxWidth;
+      final bool isMobile = maxWidth < 600; // breakpoint at 600px
+
+      return SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Column(
+          children: [
+            // Switch between Column (mobile) and Row (tablet)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: isMobile ? mobileLayout : tabletLayout,
+            ),
+          ],
+        ),
+      );
+    },
+  ),
+),
+```
+
+### Proportional container sizing
+
+```dart
+builder: (context, constraints) {
+  final double maxWidth = constraints.maxWidth;
+
+  // Card width is 80% of available width, capped to avoid over-expansion
+  final double cardWidth = (maxWidth * 0.8).clamp(0.0, 600.0);
+
+  Widget card(String title, String description, Color color) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxWidth: cardWidth,
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title),
+            const SizedBox(height: 8),
+            Text(description),
+          ],
+        ),
+      ),
+    );
+  }
+  // ...
+}
+```
+
+## Screenshots
+
+- Mobile view screenshot: `assets/screenshots/adaptive_mobile.png` (placeholder)
+- Tablet view screenshot: `assets/screenshots/adaptive_tablet.png` (placeholder)
+
+> Replace the above paths with your actual screenshot file locations once captured.
+
+## Reflection
+
+**How does MediaQuery improve scaling?**  
+`MediaQuery` exposes information about the current device, such as screen width and height, which helps choose sensible breakpoints and understand how much space is available.
+By reading these values, layouts can avoid hardcoded assumptions and instead adapt padding, font sizes, or component visibility based on the actual screen size.
+
+**How does LayoutBuilder enable structural adaptation?**  
+`LayoutBuilder` provides the `BoxConstraints` for its child, including `constraints.maxWidth`, which reflects the space actually available to that part of the widget tree.
+Using this, the UI can switch between different structures (e.g., `Column` vs `Row`) at specific width thresholds while still respecting parent constraints.
+
+**Why is responsive design crucial in real-world Flutter apps?**  
+Flutter apps run on phones, tablets, desktop, and web, all with very different screen sizes and aspect ratios.
+Responsive design ensures that the same codebase produces usable, aesthetically pleasing layouts everywhere, reducing the need for platform-specific forks.
+
+**Challenges faced while testing different screen sizes**  
+Testing required running the app on multiple emulators and sometimes resizing windows to hit specific breakpoints around the 600px width.
+It was important to verify that no overflow occurred at intermediate sizes and that the transition from Column to Row felt natural, especially in landscape orientation.
+
+## How to Test
+
+1. **Run on a mobile-sized emulator**
+   - Start an Android or iOS phone emulator.
+   - Run:
+     ```bash
+     flutter run
+     ```
+   - From any screen with access to a `BuildContext`, navigate to:
+     ```dart
+     Navigator.of(context).pushNamed('/adaptive-demo');
+     ```
+   - Confirm that the layout uses a vertical `Column` with stacked containers.
+
+2. **Run on a tablet-sized emulator**
+   - Start a tablet emulator (for example, an iPad or large Android tablet profile).
+   - Run the same build and navigate again to `'/adaptive-demo'`.
+   - Confirm that the layout now uses a horizontal `Row` with two containers arranged side-by-side, sized proportionally using the available width.
+
+3. **Optional quick test via initialRoute (do not commit)**
+   - For local testing only, you may temporarily change in `main.dart`:
+     ```dart
+     // initialRoute: '/adaptive-demo', // FOR LOCAL TESTING ONLY
+     ```
+   - After verifying the behavior, revert `initialRoute` back to `'/'` to restore the original authentication flow.
 

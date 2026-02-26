@@ -54,6 +54,17 @@ class FirestoreService {
     return _firestore.collection('users').doc(uid).collection('plants').snapshots();
   }
 
+  // Read: Get all plants for a user (one-time)
+  Future<List<DocumentSnapshot>> getPlantsData(String uid) async {
+    try {
+      final querySnapshot = await _firestore.collection('users').doc(uid).collection('plants').get();
+      return querySnapshot.docs;
+    } catch (e) {
+      print('Error getting plants data: $e');
+      return [];
+    }
+  }
+
   // Update: Update plant data
   Future<void> updatePlantData(String uid, String plantId, Map<String, dynamic> data) async {
     try {
