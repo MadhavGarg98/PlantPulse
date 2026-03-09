@@ -15,6 +15,7 @@ import 'screens/user_input_form.dart';
 import 'screens/custom_widgets_demo.dart';
 import 'screens/mediaquery_layoutbuilder_demo.dart';
 import 'screens/animation_demo.dart';
+import 'screens/firebase_verification_screen.dart';
 import 'services/firebase_service.dart';
 
 void main() async {
@@ -132,6 +133,7 @@ class PlantPulseApp extends StatelessWidget {
         '/user-form': (context) => const UserInputForm(),
         '/adaptive-demo': (context) => const AdaptiveDemoScreen(),
         '/animation-demo': (context) => const AnimationDemo(),
+        '/firebase-verification': (context) => const FirebaseVerificationScreen(),
       },
     );
   }
