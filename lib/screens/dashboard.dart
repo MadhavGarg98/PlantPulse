@@ -3,8 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/firebase_service.dart';
 import '../services/firestore_service.dart';
-import 'profile_screen.dart';
-import 'home_screen.dart';
 import 'premium_login_screen.dart';
 import 'scrollable_views.dart';
 
@@ -23,7 +21,6 @@ class _DashboardScreenState extends State<DashboardScreen>
   final AuthService _authService = AuthService();
 
   late AnimationController _fadeController;
-  late AnimationController _progressController;
 
   List<Plant> _plants = [];
   bool _isLoading = true;
@@ -31,28 +28,24 @@ class _DashboardScreenState extends State<DashboardScreen>
   @override
   void initState() {
     super.initState();
-    _loadDemoData(); // You can switch back to Firestore later
 
     _fadeController =
-        AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
-
-    _progressController =
-        AnimationController(vsync: this, duration: const Duration(milliseconds: 1500));
+        AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
 
     _fadeController.forward();
-    Future.delayed(const Duration(milliseconds: 300), () {
-      _progressController.forward();
-    });
+
+    _loadDemoData();
   }
 
   @override
   void dispose() {
     _fadeController.dispose();
-    _progressController.dispose();
     super.dispose();
   }
 
+  // -------------------------
   // DEMO DATA
+  // -------------------------
   void _loadDemoData() {
     _plants = [
       Plant(
@@ -65,7 +58,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         isHealthy: true,
       ),
       Plant(
-        id: '3',
+        id: '2',
         name: 'Snake Plant',
         scientificName: 'Sansevieria',
         lastWatered: DateTime.now().subtract(const Duration(days: 5)),
@@ -79,7 +72,9 @@ class _DashboardScreenState extends State<DashboardScreen>
     setState(() {});
   }
 
+  // -------------------------
   // CALCULATIONS
+  // -------------------------
   int get _wateredCount => _plants
       .where((p) =>
           p.lastWatered.isAfter(DateTime.now().subtract(const Duration(days: 2))))
@@ -87,8 +82,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   int get _healthyCount => _plants.where((p) => p.isHealthy).length;
 
-  int get _needsCareCount =>
-      _plants.length - _wateredCount;
+  int get _needsCareCount => _plants.length - _wateredCount;
 
   List<Plant> get _plantsNeedingCare => _plants
       .where((p) =>
@@ -109,27 +103,20 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Future<void> _logout() async {
-    try {
-      await _authService.signOut();
-      if (mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const PremiumLoginScreen()),
-          (route) => false,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error logging out: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    await _authService.signOut();
+
+    if (mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const PremiumLoginScreen()),
+        (route) => false,
+      );
     }
   }
 
+  // -------------------------
+  // MAIN UI
+  // -------------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -138,16 +125,16 @@ class _DashboardScreenState extends State<DashboardScreen>
         opacity: _fadeController,
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildGreeting(),
-                const SizedBox(height: 32),
+                const SizedBox(height: 28),
                 _buildPlantHealth(),
-                const SizedBox(height: 32),
+                const SizedBox(height: 28),
                 _buildTodaysCare(),
-                const SizedBox(height: 32),
+                const SizedBox(height: 28),
                 _buildMyPlants(),
               ],
             ),
@@ -158,87 +145,48 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   // -------------------------
-  // GREETING SECTION
+  // GREETING
   // -------------------------
   Widget _buildGreeting() {
-    final now = DateTime.now();
-    final hour = now.hour;
     final userName = widget.user.email?.split('@').first ?? 'Plant Lover';
-    
-    // Time-based greeting
-    String greeting;
-    if (hour < 12) {
-      greeting = 'Good Morning';
-    } else if (hour < 17) {
-      greeting = 'Good Afternoon';
-    } else {
-      greeting = 'Good Evening';
-    }
-    
-    // Format date
-    final weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    final months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    final weekday = weekdays[now.weekday - 1];
-    final month = months[now.month - 1];
-    final day = now.day;
-    
-    // Time-based message
-    String message;
-    if (hour < 12) {
-      message = 'Your plants are ready for a new day 🌱';
-    } else if (hour < 17) {
-      message = 'Your plants are thriving in the afternoon 🌿';
-    } else {
-      message = 'Your garden rests peacefully tonight 🌿';
-    }
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              "$weekday, $month $day",
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 28,
+            backgroundColor: const Color(0xFF1B5E20),
+            child: Text(
+              userName[0].toUpperCase(),
+              style: const TextStyle(color: Colors.white, fontSize: 20),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              "Welcome back, $userName",
               style: GoogleFonts.inter(
-                fontSize: 12,
-                color: Colors.grey[600],
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            IconButton(
-              onPressed: _logout,
-              icon: const Icon(Icons.logout, size: 20),
-              style: IconButton.styleFrom(
-                foregroundColor: Colors.grey[600],
-                padding: EdgeInsets.zero,
-                minimumSize: Size(40, 40),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(
-          "$greeting, ${userName[0].toUpperCase() + userName.substring(1).toLowerCase()}",
-          style: GoogleFonts.inter(
-            fontSize: 26,
-            fontWeight: FontWeight.w600,
-            color: Colors.black,
           ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          message,
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
+          IconButton(
+            onPressed: _logout,
+            icon: const Icon(Icons.logout),
+          )
+        ],
+      ),
     );
   }
 
   // -------------------------
-  // PLANT HEALTH
+  // HEALTH CARDS
   // -------------------------
   Widget _buildPlantHealth() {
     return Column(
@@ -247,54 +195,50 @@ class _DashboardScreenState extends State<DashboardScreen>
         Text(
           "Plant Health",
           style: GoogleFonts.inter(
-              fontSize: 18, fontWeight: FontWeight.w500),
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 16),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildMetricCircle(_wateredCount, "Watered", const Color(0xFF1B5E20)),
-            _buildMetricCircle(_healthyCount, "Healthy", const Color(0xFF4CAF50)),
-            _buildMetricCircle(_needsCareCount, "Needs Care", Colors.orange),
+            Expanded(child: _buildHealthCard("Watered", _wateredCount)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildHealthCard("Healthy", _healthyCount)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildHealthCard("Needs Care", _needsCareCount)),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildMetricCircle(int value, String label, Color color) {
-    return AnimatedBuilder(
-      animation: _progressController,
-      builder: (context, child) {
-        return Column(
-          children: [
-            SizedBox(
-              width: 70,
-              height: 70,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  CircularProgressIndicator(
-                    value: _progressController.value,
-                    strokeWidth: 6,
-                    backgroundColor: Colors.grey[300],
-                    valueColor: AlwaysStoppedAnimation(color),
-                  ),
-                  Text(
-                    value.toString(),
-                    style: GoogleFonts.inter(
-                        fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
+  Widget _buildHealthCard(String label, int value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value.toString(),
+            style: GoogleFonts.inter(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
             ),
-            const SizedBox(height: 8),
-            Text(label,
-                style: GoogleFonts.inter(
-                    fontSize: 12, color: Colors.grey[600])),
-          ],
-        );
-      },
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: Colors.grey[600],
+            ),
+          )
+        ],
+      ),
     );
   }
 
@@ -302,147 +246,81 @@ class _DashboardScreenState extends State<DashboardScreen>
   // TODAY CARE
   // -------------------------
   Widget _buildTodaysCare() {
-  final allPlants = _plants;
-  final remaining = _plantsNeedingCare.length;
+    final remaining = _plantsNeedingCare.length;
 
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Row(
-        children: [
-          Text(
-            "Today's Care",
-            style: GoogleFonts.inter(
-                fontSize: 18, fontWeight: FontWeight.w500),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Today's Care ($remaining)",
+          style: GoogleFonts.inter(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
           ),
-          const SizedBox(width: 8),
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              "$remaining remaining",
-              style: GoogleFonts.inter(fontSize: 12),
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 16),
-      Column(
-        children: allPlants
-            .map((plant) => _buildCareCard(plant))
-            .toList(),
-      ),
-    ],
-  );
-}
-
-  Widget _buildSuccessState() {
-    final hour = DateTime.now().hour;
-    String message;
-    String subMessage;
-    
-    if (hour < 12) {
-      message = "All caught up";
-      subMessage = "Your plants are happy this morning 🌱";
-    } else if (hour < 17) {
-      message = "All caught up";
-      subMessage = "Your plants are thriving this afternoon 🌿";
-    } else {
-      message = "All caught up";
-      subMessage = "Your plants are resting well tonight 🌿";
-    }
-    
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Center(
-        child: Column(
-          children: [
-            const Icon(Icons.check_circle,
-                color: Color(0xFF1B5E20), size: 40),
-            const SizedBox(height: 12),
-            Text(message,
-                style: GoogleFonts.inter(
-                    fontSize: 16, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 6),
-            Text(subMessage,
-                style: GoogleFonts.inter(
-                    fontSize: 13, color: Colors.grey[600])),
-          ],
         ),
-      ),
+        const SizedBox(height: 16),
+        Column(
+          children: _plants.map((plant) => _buildCareCard(plant)).toList(),
+        ),
+      ],
     );
   }
 
   Widget _buildCareCard(Plant plant) {
-  final isWateredToday = plant.lastWatered
-      .isAfter(DateTime.now().subtract(const Duration(days: 2)));
+    final isWateredToday = plant.lastWatered
+        .isAfter(DateTime.now().subtract(const Duration(days: 2)));
 
-  return AnimatedContainer(
-    duration: const Duration(milliseconds: 400),
-    margin: const EdgeInsets.only(bottom: 16),
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: isWateredToday
-          ? const Color(0xFFE8F5E9)
-          : Colors.white,
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Row(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Image.network(
-            plant.imageUrl,
-            width: 60,
-            height: 60,
-            fit: BoxFit.cover,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: Image.network(
+              plant.imageUrl,
+              width: 65,
+              height: 65,
+              fit: BoxFit.cover,
+            ),
           ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                plant.name,
-                style: GoogleFonts.inter(
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  plant.name,
+                  style: GoogleFonts.inter(
                     fontSize: 16,
-                    fontWeight: FontWeight.w600),
-              ),
-              Text(
-                plant.scientificName,
-                style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  plant.scientificName,
+                  style: GoogleFonts.inter(
                     fontSize: 13,
-                    color: Colors.grey[600]),
-              ),
-            ],
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        ElevatedButton(
-          onPressed: isWateredToday
-              ? null
-              : () => _waterPlant(plant),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: isWateredToday
-                ? Colors.grey
-                : const Color(0xFF1B5E20),
-          ),
-          child: Text(
-            isWateredToday ? "Watered" : "Water",
-          ),
-        )
-      ],
-    ),
-  );
-}
+          ElevatedButton(
+            onPressed: isWateredToday ? null : () => _waterPlant(plant),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1B5E20),
+            ),
+            child: Text(isWateredToday ? "Done" : "Water"),
+          )
+        ],
+      ),
+    );
+  }
 
   // -------------------------
   // MY PLANTS GRID
@@ -451,34 +329,12 @@ class _DashboardScreenState extends State<DashboardScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(
-              "My Plants",
-              style: GoogleFonts.inter(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const Spacer(),
-            TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ScrollableViews(),
-                  ),
-                );
-              },
-              child: Text(
-                "See All",
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: const Color(0xFF1B5E20),
-                ),
-              ),
-            ),
-          ],
+        Text(
+          "My Plants",
+          style: GoogleFonts.inter(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 16),
         GridView.builder(
@@ -488,23 +344,25 @@ class _DashboardScreenState extends State<DashboardScreen>
           gridDelegate:
               const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            crossAxisSpacing: 20,
-            mainAxisSpacing: 20,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
             childAspectRatio: 0.8,
           ),
           itemBuilder: (context, index) {
             final plant = _plants[index];
+
             return Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(22),
               ),
               child: Column(
                 children: [
                   Expanded(
                     child: ClipRRect(
                       borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(24)),
+                        top: Radius.circular(22),
+                      ),
                       child: Image.network(
                         plant.imageUrl,
                         fit: BoxFit.cover,
@@ -516,14 +374,19 @@ class _DashboardScreenState extends State<DashboardScreen>
                     padding: const EdgeInsets.all(12),
                     child: Column(
                       children: [
-                        Text(plant.name,
-                            style: GoogleFonts.inter(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600)),
-                        Text(plant.scientificName,
-                            style: GoogleFonts.inter(
-                                fontSize: 12,
-                                color: Colors.grey[600])),
+                        Text(
+                          plant.name,
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          plant.scientificName,
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        )
                       ],
                     ),
                   )
@@ -537,7 +400,9 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 }
 
-// MODEL
+// -------------------------
+// PLANT MODEL
+// -------------------------
 class Plant {
   final String id;
   final String name;
