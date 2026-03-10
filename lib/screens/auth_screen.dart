@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'dashboard_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -10,6 +9,7 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   final _emailController = TextEditingController();
@@ -18,38 +18,36 @@ class _AuthScreenState extends State<AuthScreen> {
   bool isLogin = true;
   bool isLoading = false;
 
-  Future<void> _submitAuthForm() async {
+  Future<void> submitAuth() async {
+
     setState(() {
       isLoading = true;
     });
 
     try {
-      UserCredential userCredential;
 
       if (isLogin) {
-        userCredential = await _auth.signInWithEmailAndPassword(
+
+        await _auth.signInWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
+
       } else {
-        userCredential = await _auth.createUserWithEmailAndPassword(
+
+        await _auth.createUserWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
+
       }
 
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => DashboardScreen(user: userCredential.user!),
-          ),
-        );
-      }
     } on FirebaseAuthException catch (e) {
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message ?? "Authentication error")),
       );
+
     }
 
     setState(() {
@@ -59,10 +57,9 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("PlantPulse Authentication"),
-      ),
+      appBar: AppBar(title: const Text("PlantPulse Authentication")),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -71,9 +68,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
             TextField(
               controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: "Email",
-              ),
+              decoration: const InputDecoration(labelText: "Email"),
             ),
 
             const SizedBox(height: 16),
@@ -81,9 +76,7 @@ class _AuthScreenState extends State<AuthScreen> {
             TextField(
               controller: _passwordController,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: "Password",
-              ),
+              decoration: const InputDecoration(labelText: "Password"),
             ),
 
             const SizedBox(height: 24),
@@ -91,8 +84,8 @@ class _AuthScreenState extends State<AuthScreen> {
             isLoading
                 ? const CircularProgressIndicator()
                 : ElevatedButton(
-                    onPressed: _submitAuthForm,
-                    child: Text(isLogin ? "Login" : "Signup"),
+                    onPressed: submitAuth,
+                    child: Text(isLogin ? "Login" : "Sign Up"),
                   ),
 
             TextButton(
