@@ -1416,3 +1416,184 @@ It was important to verify that no overflow occurred at intermediate sizes and t
      ```
    - After verifying the behavior, revert `initialRoute` back to `'/'` to restore the original authentication flow.
 
+
+---
+
+# Project Title
+Flutter Animations & Transitions Demo
+
+## Overview
+This assignment adds an `AnimationDemo` screen that demonstrates implicit animations, an explicit rotation animation, and a custom page transition in Flutter.
+The screen uses `AnimatedContainer` and `AnimatedOpacity` for smooth property changes, an `AnimationController` with `RotationTransition` for explicit control, and `PageRouteBuilder` with `SlideTransition` for a 700 ms sliding page navigation.
+
+## Code Snippets
+
+### AnimatedContainer usage
+
+```dart
+AnimatedContainer(
+  duration: const Duration(milliseconds: 600),
+  curve: Curves.easeInOut,
+  width: _toggled ? 180 : 120,
+  height: _toggled ? 120 : 180,
+  decoration: BoxDecoration(
+    color: _toggled
+        ? Theme.of(context).colorScheme.primary
+        : Theme.of(context).colorScheme.secondary,
+    borderRadius: BorderRadius.circular(_toggled ? 32 : 12),
+  ),
+  child: Center(
+    child: AnimatedOpacity(
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeInOut,
+      opacity: _toggled ? 0.4 : 1.0,
+      child: Text(
+        'Tap the button below to animate size, color,\n'
+        'border radius, and opacity.',
+        textAlign: TextAlign.center,
+        style: Theme.of(context)
+            .textTheme
+            .bodyMedium
+            ?.copyWith(color: Colors.white),
+      ),
+    ),
+  ),
+);
+```
+
+### AnimatedOpacity usage
+
+```dart
+AnimatedOpacity(
+  duration: const Duration(milliseconds: 600),
+  curve: Curves.easeInOut,
+  opacity: _toggled ? 0.4 : 1.0,
+  child: const Icon(
+    Icons.favorite,
+    color: Colors.white,
+    size: 32,
+  ),
+);
+```
+
+### AnimationController setup with RotationTransition
+
+```dart
+class _AnimationDemoState extends State<AnimationDemo>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _rotation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _rotation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+}
+
+// Usage in build:
+RotationTransition(
+  turns: _rotation,
+  child: Container(
+    width: 80,
+    height: 80,
+    color: Theme.of(context).colorScheme.primary,
+    child: const Icon(Icons.refresh, color: Colors.white),
+  ),
+);
+```
+
+### PageRouteBuilder slide transition
+
+```dart
+void _openDetailsPage(BuildContext context) {
+  Navigator.of(context).push(
+    PageRouteBuilder(
+      transitionDuration: const Duration(milliseconds: 700),
+      pageBuilder: (context, animation, secondaryAnimation) =>
+          const AnimationDetailsPage(),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final offsetAnimation = Tween<Offset>(
+          begin: const Offset(1.0, 0.0),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeInOut,
+        ));
+        return SlideTransition(
+          position: offsetAnimation,
+          child: child,
+        );
+      },
+    ),
+  );
+}
+```
+
+## Screenshots / GIFs
+
+- AnimatedContainer state change: `assets/screenshots/animation_container.png` (placeholder)
+- Fade effect demo: `assets/screenshots/animation_opacity.png` (placeholder)
+- Slide transition demo: `assets/screenshots/animation_slide.png` (placeholder)
+
+> Replace the above paths with your actual screenshot or GIF locations once captured.
+
+## Reflection
+
+**Why do animations improve UX?**  
+Animations make state changes feel natural and understandable by visually guiding the user’s attention.
+They reduce the cognitive load of sudden changes, provide feedback for interactions, and make the app feel more polished and responsive.
+
+**Difference between implicit and explicit animations**  
+Implicit animations (such as `AnimatedContainer` and `AnimatedOpacity`) automatically tween between old and new values whenever their properties change, requiring minimal code.
+Explicit animations use `AnimationController` and curves to give developers fine-grained control over timing, direction, and composition, but require more setup and lifecycle management.
+
+**How can animations enhance the team’s main project?**  
+In the main PlantPulse app, animations can be used to softly introduce new plant cards, highlight changes in stats, or animate theme transitions so the UI feels more alive.
+Subtle transitions between screens and animated feedback on actions (like adding or deleting a plant) can increase user satisfaction without compromising performance.
+
+## How to Test
+
+1. **Navigate to the animation demo screen**
+   - Run the app:
+     ```bash
+     flutter run
+     ```
+   - From any screen with a valid `BuildContext`, navigate to:
+     ```dart
+     Navigator.of(context).pushNamed('/animation-demo');
+     ```
+
+2. **Test implicit animations**
+   - On the `AnimationDemo` screen, tap the **Toggle Implicit Animations** button.
+   - Verify that the container smoothly changes size, color, border radius, and opacity over ~600 ms with an easeInOut curve.
+
+3. **Test explicit rotation animation**
+   - Tap **Play / Reverse Rotation** and confirm the square rotates smoothly using `RotationTransition`.
+   - Press the button again to reverse the rotation; ensure there are no stutters or errors.
+
+4. **Test page slide transition**
+   - Tap **Open Animated Details Page**.
+   - Confirm that the new page slides in from the right over ~700 ms using a horizontal `SlideTransition`.
+   - Press back and verify a smooth reverse transition with no route or state issues.
+
+5. **Optional quick test via initialRoute (do not commit)**
+   - For local testing only, you may temporarily change in `main.dart`:
+     ```dart
+     // initialRoute: '/animation-demo', // FOR LOCAL TESTING ONLY
+     ```
+   - After verifying the behavior, revert `initialRoute` back to `'/'` to restore the original authentication flow.
+

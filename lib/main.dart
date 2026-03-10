@@ -14,7 +14,8 @@ import 'screens/responsive_layout.dart';
 import 'screens/user_input_form.dart';
 import 'screens/custom_widgets_demo.dart';
 import 'screens/mediaquery_layoutbuilder_demo.dart';
-import 'services/firebase_service.dart';
+import 'screens/animation_demo.dart';
+import 'screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -130,6 +131,7 @@ class PlantPulseApp extends StatelessWidget {
         '/responsive': (context) => const ResponsiveLayout(),
         '/user-form': (context) => const UserInputForm(),
         '/adaptive-demo': (context) => const AdaptiveDemoScreen(),
+        '/animation-demo': (context) => const AnimationDemo(),
       },
     );
   }
@@ -140,22 +142,19 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AuthService authService = AuthService();
-    
     return StreamBuilder<User?>(
-      stream: authService.authStateChanges,
+      stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
+        // Show splash screen while checking auth state
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
+          return const SplashScreen();
         }
         
+        // User is authenticated, show dashboard
         if (snapshot.hasData) {
           return DashboardScreen(user: snapshot.data!);
         } else {
+          // User is not authenticated, show login screen
           return const PremiumLoginScreen();
         }
       },
