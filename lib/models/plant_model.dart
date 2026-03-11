@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Model for plant documents in Firestore (users/{userId}/plants/{plantId}).
+/// Fields: name, type, createdAt, lastWatered, imageUrl, notes.
 class PlantModel {
   final String? id;
   final String name;

@@ -1597,3 +1597,243 @@ Subtle transitions between screens and animated feedback on actions (like adding
      ```
    - After verifying the behavior, revert `initialRoute` back to `'/'` to restore the original authentication flow.
 
+---
+
+## 🗄️ Cloud Firestore Database Design
+
+> **Assignment: Designing Cloud Firestore Database for App Data Storage**  
+> This section documents the Firestore data model for PlantPulse — a plant care app. The focus is on schema design, naming conventions, and structure — not CRUD implementation.
+
+### Project Title
+
+**PlantPulse — Cloud Firestore Data Model**
+
+### Short Description
+
+PlantPulse uses Cloud Firestore as a NoSQL document database to store user profiles and plant records. The schema is hierarchical: each user has a profile document and a `plants` subcollection for their plants. This keeps data per user and supports real-time updates without large cross-collection queries.
+
+---
+
+### 1. Data Requirements List
+
+Before designing the schema, these data needs were identified:
+
+| Data Type | Purpose | Change Frequency | Scale | Storage Choice |
+|-----------|---------|------------------|-------|----------------|
+| **Users** | Profiles (email, name, image) | Low | Thousands | Top-level collection |
+| **Plants** | Individual plant records per user | Medium | Hundreds per user | Subcollection under users |
+| **Care Logs** | Watering/fertilizing history per plant | High | Thousands per plant | Subcollection under plants (future) |
+| **Reminders** | Care schedule per plant | Low–Medium | Tens per plant | Document fields or subcollection (future) |
+
+Current implementation:
+
+- **Users** — User profiles: email, name, timestamps, profile image URL
+- **Plants** — Plant records: name, type, last watered, image URL, notes, timestamps
+
+Planned for future (push notifications, analytics):
+
+- **Care logs** — Watering and fertilizing history per plant
+- **Care reminders** — Scheduling for care tasks
+
+---
+
+### 2. Firestore Schema
+
+#### Top-Level Collections
+
+##### `users` (collection)
+
+- Holds one document per user (document ID = Firebase Auth UID)
+- Stores profile data and contains the `plants` subcollection
+
+##### `users/{userId}` (document)
+
+| Field | Data Type | Required | Description |
+|-------|-----------|----------|-------------|
+| `email` | string | Yes | User email address |
+| `name` | string | Yes | Display name |
+| `createdAt` | timestamp | Yes | Account creation time |
+| `updatedAt` | timestamp | Yes | Last profile update |
+| `profileImageUrl` | string | No | Profile photo URL |
+
+##### `users/{userId}/plants` (subcollection)
+
+- One plant per document (auto-generated IDs)
+- Only relevant to that user
+- Can be streamed in real time per user
+
+##### `users/{userId}/plants/{plantId}` (document)
+
+| Field | Data Type | Required | Description |
+|-------|-----------|----------|-------------|
+| `name` | string | Yes | Common plant name |
+| `type` | string | Yes | Type or scientific name |
+| `createdAt` | timestamp | Yes | When record was added |
+| `lastWatered` | timestamp | Yes | Last watering date |
+| `imageUrl` | string | No | Plant image URL |
+| `notes` | string | No | User notes |
+| `updatedAt` | timestamp | No | Last update time |
+
+##### `users/{userId}/plants/{plantId}/careLogs` (subcollection, future)
+
+- For watering/fertilizing history
+- Kept as a subcollection because history can be large
+- Avoids large arrays inside a single document
+
+---
+
+### 3. When Subcollections Are Used
+
+Subcollections are used when:
+
+- Data can grow large (e.g. care logs per plant)
+- Data belongs to a parent (plants to user, logs to plant)
+- Real-time updates are needed for nested data
+- Loading everything in one go is undesirable
+
+Plant lists are not stored as arrays in the user document because:
+
+- Firestore documents have a size limit
+- Arrays do not scale well for frequent updates
+- Subcollections reduce per-read cost and improve query flexibility
+
+---
+
+### 4. Field Design Guidelines
+
+- **Naming**: `lowerCamelCase` for all field names
+- **Timestamps**: Use `FieldValue.serverTimestamp()` for `createdAt` and `updatedAt`
+- **Optional fields**: `imageUrl`, `notes`, `profileImageUrl` can be omitted
+- **IDs**: Auto-generated for plants; user IDs come from Firebase Auth
+
+---
+
+### 5. Sample JSON Documents
+
+#### User Document: `users/abc123xyz`
+
+```json
+{
+  "email": "asha@example.com",
+  "name": "Asha",
+  "createdAt": "2024-01-15T10:30:00Z",
+  "updatedAt": "2024-01-15T10:30:00Z",
+  "profileImageUrl": "https://storage.googleapis.com/plantpulse/profiles/asha.jpg"
+}
+```
+
+#### Plant Document: `users/abc123xyz/plants/plant001`
+
+```json
+{
+  "name": "Monstera",
+  "type": "Monstera Deliciosa",
+  "createdAt": "2024-01-20T14:00:00Z",
+  "lastWatered": "2024-03-08T09:00:00Z",
+  "imageUrl": "https://storage.googleapis.com/plantpulse/plants/monstera.jpg",
+  "notes": "Needs bright indirect light. Water when top 2 inches dry.",
+  "updatedAt": "2024-03-08T09:00:00Z"
+}
+```
+
+#### Plant Document (minimal): `users/abc123xyz/plants/plant002`
+
+```json
+{
+  "name": "Snake Plant",
+  "type": "Sansevieria",
+  "createdAt": "2024-02-01T12:00:00Z",
+  "lastWatered": "2024-03-05T08:00:00Z"
+}
+```
+
+---
+
+### 6. Schema Diagram
+
+```mermaid
+flowchart TB
+    subgraph usersCollection["users (collection)"]
+        userDoc["userId (document)"]
+    end
+
+    userDoc --- userFields
+    userFields["email: string<br/>name: string<br/>createdAt: timestamp<br/>updatedAt: timestamp<br/>profileImageUrl: string"]
+
+    userDoc --- plantsSub["plants (subcollection)"]
+
+    subgraph plantsSubgraph["plants subcollection"]
+        plantDoc["plantId (document)"]
+    end
+
+    plantsSub --- plantDoc
+    plantDoc --- plantFields["name: string<br/>type: string<br/>createdAt: timestamp<br/>lastWatered: timestamp<br/>imageUrl: string<br/>notes: string<br/>updatedAt: timestamp"]
+
+    plantDoc -.->|"future"| careLogsSub["careLogs (subcollection)"]
+    careLogsSub -.-> careLogDoc["careLogId (document)"]
+    careLogDoc -.-> careLogFields["type: string<br/>performedAt: timestamp<br/>notes: string"]
+```
+
+**Structure overview:**
+
+```
+users (collection)
+ └── userId (document)
+       ├── email: string
+       ├── name: string
+       ├── createdAt: timestamp
+       ├── updatedAt: timestamp
+       ├── profileImageUrl: string (optional)
+       └── plants (subcollection)
+             └── plantId (document)
+                   ├── name: string
+                   ├── type: string
+                   ├── createdAt: timestamp
+                   ├── lastWatered: timestamp
+                   ├── imageUrl: string (optional)
+                   ├── notes: string (optional)
+                   ├── updatedAt: timestamp (optional)
+                   └── careLogs (subcollection, future)
+                         └── careLogId (document)
+                               ├── type: string
+                               ├── performedAt: timestamp
+                               └── notes: string
+```
+
+---
+
+### 7. Schema Validation Checklist
+
+- [x] Structure matches app requirements (users, plants, future care logs)
+- [x] Can scale to many users and many plants per user
+- [x] Related data grouped logically (plants under users, logs under plants)
+- [x] Subcollections used where needed (plants, careLogs)
+- [x] Field names and types are consistent (lowerCamelCase, timestamps)
+- [x] Schema is easy for another developer to understand and extend
+
+---
+
+### 8. Reflection
+
+#### Why was this structure chosen?
+
+- **User-centric**: One document per user with a `plants` subcollection lets us fetch and stream a user’s plants without cross-collection queries.
+- **Scalability**: Plants are not stored in arrays, so the schema avoids document size limits and expensive updates.
+- **Future care logs**: A `careLogs` subcollection under each plant supports a large history without changing the top-level structure.
+- **Real-time**: Firestore listeners on `users/{userId}/plants` can push live updates when plants are added or changed.
+- **Security**: Rules can enforce that users only read/write their own document and plants subcollection.
+
+#### How does this help performance and scalability?
+
+- **Hierarchical layout**: Queries stay scoped to `users/{uid}/plants` instead of a global plants collection.
+- **Lazy loading**: Plants can be paginated; care logs can be queried only when needed.
+- **Indexing**: Timestamps support sorting (e.g. by `lastWatered` or `createdAt`).
+- **Read efficiency**: Subcollections avoid large documents and help keep reads targeted.
+
+#### What challenges were faced while designing the schema?
+
+- **Required vs optional**: Choosing which fields are required vs optional (e.g. `imageUrl`, `notes`) to support different user workflows.
+- **Data types**: Storing dates as Firestore timestamps instead of strings for correct sorting and querying.
+- **Future features**: Balancing current needs with future features (care logs, reminders, sharing) without over-designing.
+- **ID strategy**: Using auto-generated IDs for plants while ensuring uniqueness and avoiding collisions.
+
