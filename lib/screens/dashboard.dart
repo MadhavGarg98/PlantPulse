@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../models/plant_model.dart';
 import '../services/firebase_service.dart';
 import '../services/firestore_service.dart';
 import 'premium_login_screen.dart';
-import 'scrollable_views.dart';
 
 class DashboardScreen extends StatefulWidget {
   final User user;
@@ -22,19 +22,14 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   late AnimationController _fadeController;
 
-  List<Plant> _plants = [];
-  bool _isLoading = true;
-
   @override
   void initState() {
     super.initState();
-
-    _fadeController =
-        AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
-
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
     _fadeController.forward();
-
-    _loadDemoData();
   }
 
   @override
@@ -43,68 +38,11 @@ class _DashboardScreenState extends State<DashboardScreen>
     super.dispose();
   }
 
-  // -------------------------
-  // DEMO DATA
-  // -------------------------
-  void _loadDemoData() {
-    _plants = [
-      Plant(
-        id: '1',
-        name: 'Monstera',
-        scientificName: 'Monstera Deliciosa',
-        lastWatered: DateTime.now().subtract(const Duration(days: 3)),
-        imageUrl:
-            'https://images.unsplash.com/photo-1416879595882-3373a0480b5b',
-        isHealthy: true,
-      ),
-      Plant(
-        id: '2',
-        name: 'Snake Plant',
-        scientificName: 'Sansevieria',
-        lastWatered: DateTime.now().subtract(const Duration(days: 5)),
-        imageUrl:
-            'https://images.unsplash.com/photo-1485955900006-10f4d324d411',
-        isHealthy: false,
-      ),
-    ];
-
-    _isLoading = false;
-    setState(() {});
-  }
-
-  // -------------------------
-  // CALCULATIONS
-  // -------------------------
-  int get _wateredCount => _plants
-      .where((p) =>
-          p.lastWatered.isAfter(DateTime.now().subtract(const Duration(days: 2))))
-      .length;
-
-  int get _healthyCount => _plants.where((p) => p.isHealthy).length;
-
-  int get _needsCareCount => _plants.length - _wateredCount;
-
-  List<Plant> get _plantsNeedingCare => _plants
-      .where((p) =>
-          !p.lastWatered.isAfter(DateTime.now().subtract(const Duration(days: 2))))
-      .toList();
-
-  void _waterPlant(Plant plant) {
-    setState(() {
-      plant.lastWatered = DateTime.now();
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("${plant.name} watered 🌿"),
-        backgroundColor: const Color(0xFF1B5E20),
-      ),
-    );
-  }
+  static const String _defaultPlantImageUrl =
+      'https://images.unsplash.com/photo-1416879595882-3373a0480b5b';
 
   Future<void> _logout() async {
     await _authService.signOut();
-
     if (mounted) {
       Navigator.pushAndRemoveUntil(
         context,
@@ -114,9 +52,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
   }
 
-  // -------------------------
-  // MAIN UI
-  // -------------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -131,11 +66,37 @@ class _DashboardScreenState extends State<DashboardScreen>
               children: [
                 _buildGreeting(),
                 const SizedBox(height: 28),
-                _buildPlantHealth(),
-                const SizedBox(height: 28),
-                _buildTodaysCare(),
-                const SizedBox(height: 28),
-                _buildMyPlants(),
+                StreamBuilder(
+                  stream: _firestoreService.getUserPlants(widget.user.uid),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return _buildErrorState(snapshot.error.toString());
+                    }
+                    if (!snapshot.hasData || snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32),
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF1B5E20),
+                          ),
+                        ),
+                      );
+                    }
+                    final plants = snapshot.data!.docs
+                        .map((doc) => PlantModel.fromFirestore(doc))
+                        .toList();
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildPlantHealth(plants),
+                        const SizedBox(height: 28),
+                        _buildTodaysCare(plants),
+                        const SizedBox(height: 28),
+                        _buildMyPlants(plants),
+                      ],
+                    );
+                  },
+                ),
               ],
             ),
           ),
@@ -144,51 +105,85 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // -------------------------
-  // GREETING
-  // -------------------------
-  Widget _buildGreeting() {
-    final userName = widget.user.email?.split('@').first ?? 'Plant Lover';
-
+  Widget _buildErrorState(String message) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
+      child: Column(
         children: [
-          CircleAvatar(
-            radius: 28,
-            backgroundColor: const Color(0xFF1B5E20),
-            child: Text(
-              userName[0].toUpperCase(),
-              style: const TextStyle(color: Colors.white, fontSize: 20),
-            ),
+          const Icon(Icons.error_outline, color: Colors.red, size: 40),
+          const SizedBox(height: 12),
+          Text(
+            'Failed to load plants',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              "Welcome back, $userName",
-              style: GoogleFonts.inter(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+          const SizedBox(height: 4),
+          Text(
+            message,
+            style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[700]),
+            textAlign: TextAlign.center,
           ),
-          IconButton(
-            onPressed: _logout,
-            icon: const Icon(Icons.logout),
-          )
         ],
       ),
     );
   }
 
-  // -------------------------
-  // HEALTH CARDS
-  // -------------------------
-  Widget _buildPlantHealth() {
+  Widget _buildGreeting() {
+    return FutureBuilder(
+      future: _firestoreService.getUserData(widget.user.uid),
+      builder: (context, snapshot) {
+        String displayName = widget.user.email?.split('@').first ?? 'Plant Lover';
+        if (snapshot.hasData) {
+          final data = snapshot.data!.data() as Map<String, dynamic>?;
+          if (data != null && data['name'] != null && (data['name'] as String).isNotEmpty) {
+            displayName = data['name'] as String;
+          }
+        }
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: const Color(0xFF1B5E20),
+                child: Text(
+                  displayName.isNotEmpty ? displayName[0].toUpperCase() : 'P',
+                  style: const TextStyle(color: Colors.white, fontSize: 20),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  "Welcome back, $displayName",
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: _logout,
+                icon: const Icon(Icons.logout),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPlantHealth(List<PlantModel> plants) {
+    final wateredCount = plants.where((p) => !p.needsWater).length;
+    final needsCareCount = plants.where((p) => p.needsWater).length;
+    final healthyCount = plants.length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -202,11 +197,11 @@ class _DashboardScreenState extends State<DashboardScreen>
         const SizedBox(height: 16),
         Row(
           children: [
-            Expanded(child: _buildHealthCard("Watered", _wateredCount)),
+            Expanded(child: _buildHealthCard("Watered", wateredCount)),
             const SizedBox(width: 12),
-            Expanded(child: _buildHealthCard("Healthy", _healthyCount)),
+            Expanded(child: _buildHealthCard("Total", healthyCount)),
             const SizedBox(width: 12),
-            Expanded(child: _buildHealthCard("Needs Care", _needsCareCount)),
+            Expanded(child: _buildHealthCard("Needs Care", needsCareCount)),
           ],
         ),
       ],
@@ -236,39 +231,55 @@ class _DashboardScreenState extends State<DashboardScreen>
               fontSize: 12,
               color: Colors.grey[600],
             ),
-          )
+          ),
         ],
       ),
     );
   }
 
-  // -------------------------
-  // TODAY CARE
-  // -------------------------
-  Widget _buildTodaysCare() {
-    final remaining = _plantsNeedingCare.length;
+  Widget _buildTodaysCare(List<PlantModel> plants) {
+    final plantsNeedingCare = plants.where((p) => p.needsWater).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Today's Care ($remaining)",
+          "Today's Care (${plantsNeedingCare.length})",
           style: GoogleFonts.inter(
             fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 16),
-        Column(
-          children: _plants.map((plant) => _buildCareCard(plant)).toList(),
-        ),
+        plantsNeedingCare.isEmpty
+            ? Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: Color(0xFF1B5E20), size: 36),
+                    const SizedBox(width: 16),
+                    Text(
+                      "All plants are watered! 🌿",
+                      style: GoogleFonts.inter(fontSize: 16),
+                    ),
+                  ],
+                ),
+              )
+            : Column(
+                children: plantsNeedingCare.map((plant) => _buildCareCard(plant)).toList(),
+              ),
       ],
     );
   }
 
-  Widget _buildCareCard(Plant plant) {
-    final isWateredToday = plant.lastWatered
-        .isAfter(DateTime.now().subtract(const Duration(days: 2)));
+  Widget _buildCareCard(PlantModel plant) {
+    final imageUrl = plant.imageUrl != null && plant.imageUrl!.isNotEmpty
+        ? plant.imageUrl!
+        : _defaultPlantImageUrl;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -282,10 +293,16 @@ class _DashboardScreenState extends State<DashboardScreen>
           ClipRRect(
             borderRadius: BorderRadius.circular(14),
             child: Image.network(
-              plant.imageUrl,
+              imageUrl,
               width: 65,
               height: 65,
               fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                width: 65,
+                height: 65,
+                color: Colors.grey[300],
+                child: const Icon(Icons.eco, size: 32),
+              ),
             ),
           ),
           const SizedBox(width: 14),
@@ -301,7 +318,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   ),
                 ),
                 Text(
-                  plant.scientificName,
+                  plant.type,
                   style: GoogleFonts.inter(
                     fontSize: 13,
                     color: Colors.grey[600],
@@ -311,21 +328,23 @@ class _DashboardScreenState extends State<DashboardScreen>
             ),
           ),
           ElevatedButton(
-            onPressed: isWateredToday ? null : () => _waterPlant(plant),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1B5E20),
-            ),
-            child: Text(isWateredToday ? "Done" : "Water"),
-          )
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("${plant.name} — update in plant detail 🌿"),
+                  backgroundColor: const Color(0xFF1B5E20),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E20)),
+            child: const Text("Water"),
+          ),
         ],
       ),
     );
   }
 
-  // -------------------------
-  // MY PLANTS GRID
-  // -------------------------
-  Widget _buildMyPlants() {
+  Widget _buildMyPlants(List<PlantModel> plants) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -337,86 +356,102 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
         ),
         const SizedBox(height: 16),
-        GridView.builder(
-          itemCount: _plants.length,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate:
-              const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 0.8,
-          ),
-          itemBuilder: (context, index) {
-            final plant = _plants[index];
-
-            return Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(22),
-              ),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(22),
-                      ),
-                      child: Image.network(
-                        plant.imageUrl,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
+        plants.isEmpty
+            ? Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.eco_outlined, size: 64, color: Colors.grey[400]),
+                    const SizedBox(height: 12),
+                    Text(
+                      "No plants yet",
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        color: Colors.grey[600],
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(12),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Add plants from the profile screen",
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : GridView.builder(
+                itemCount: plants.length,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 0.8,
+                ),
+                itemBuilder: (context, index) {
+                  final plant = plants[index];
+                  final imageUrl = plant.imageUrl != null && plant.imageUrl!.isNotEmpty
+                      ? plant.imageUrl!
+                      : _defaultPlantImageUrl;
+
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(22),
+                    ),
                     child: Column(
                       children: [
-                        Text(
-                          plant.name,
-                          style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w600,
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(22),
+                            ),
+                            child: Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              errorBuilder: (_, __, ___) => Container(
+                                color: Colors.grey[200],
+                                child: const Icon(Icons.eco, size: 48),
+                              ),
+                            ),
                           ),
                         ),
-                        Text(
-                          plant.scientificName,
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: Colors.grey[600],
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            children: [
+                              Text(
+                                plant.name,
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              Text(
+                                plant.type,
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ),
-                        )
+                        ),
                       ],
                     ),
-                  )
-                ],
+                  );
+                },
               ),
-            );
-          },
-        )
       ],
     );
   }
-}
-
-// -------------------------
-// PLANT MODEL
-// -------------------------
-class Plant {
-  final String id;
-  final String name;
-  final String scientificName;
-  DateTime lastWatered;
-  final String imageUrl;
-  final bool isHealthy;
-
-  Plant({
-    required this.id,
-    required this.name,
-    required this.scientificName,
-    required this.lastWatered,
-    required this.imageUrl,
-    required this.isHealthy,
-  });
 }

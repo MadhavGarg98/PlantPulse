@@ -1837,3 +1837,136 @@ users (collection)
 - **Future features**: Balancing current needs with future features (care logs, reminders, sharing) without over-designing.
 - **ID strategy**: Using auto-generated IDs for plants while ensuring uniqueness and avoiding collisions.
 
+---
+
+## 📖 Reading Data from Firestore Collections and Documents
+
+> **Assignment: Reading Data from Firestore**  
+> PlantPulse reads user profiles and plant data from Cloud Firestore and displays it in the UI. Data updates in real time when Firestore changes.
+
+### Project Title
+
+**Reading Firestore Data in PlantPulse**
+
+### Brief Explanation
+
+The app reads two types of data from Firestore:
+
+- **User document** (`users/{userId}`) — Profile data (name, email) via one-time read
+- **Plants subcollection** (`users/{userId}/plants`) — Plant list via real-time stream
+
+These are shown in the Dashboard (plants list, health stats) and Profile (plant count), and update automatically when data changes in Firestore.
+
+---
+
+### Code Snippets
+
+#### 1. Collection Read (Real-Time Stream)
+
+```dart
+// FirestoreService.getUserPlants — returns stream of plants
+Stream<QuerySnapshot> getUserPlants(String uid) {
+  return _firestore
+      .collection(_usersCollection)
+      .doc(uid)
+      .collection(_plantsSubcollection)
+      .snapshots();
+}
+```
+
+#### 2. Document Read (One-Time)
+
+```dart
+// FirestoreService.getUserData — single user document
+Future<DocumentSnapshot> getUserData(String uid) async {
+  return await _firestore.collection(_usersCollection).doc(uid).get();
+}
+```
+
+#### 3. StreamBuilder (Real-Time Plants in Dashboard)
+
+```dart
+StreamBuilder(
+  stream: _firestoreService.getUserPlants(widget.user.uid),
+  builder: (context, snapshot) {
+    if (snapshot.hasError) {
+      return _buildErrorState(snapshot.error.toString());
+    }
+    if (!snapshot.hasData || snapshot.connectionState == ConnectionState.waiting) {
+      return const CircularProgressIndicator(color: Color(0xFF1B5E20));
+    }
+    final plants = snapshot.data!.docs
+        .map((doc) => PlantModel.fromFirestore(doc))
+        .toList();
+    return _buildMyPlants(plants);
+  },
+);
+```
+
+#### 4. FutureBuilder (Single User Document in Greeting)
+
+```dart
+FutureBuilder(
+  future: _firestoreService.getUserData(widget.user.uid),
+  builder: (context, snapshot) {
+    String displayName = widget.user.email?.split('@').first ?? 'Plant Lover';
+    if (snapshot.hasData) {
+      final data = snapshot.data!.data() as Map<String, dynamic>?;
+      if (data != null && data['name'] != null) {
+        displayName = data['name'] as String;
+      }
+    }
+    return Text("Welcome back, $displayName");
+  },
+);
+```
+
+#### 5. Null / Missing Data Handling
+
+```dart
+if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+  return Container(
+    child: Text("No plants yet"),
+  );
+}
+
+// Fallback for missing image
+final imageUrl = plant.imageUrl != null && plant.imageUrl!.isNotEmpty
+    ? plant.imageUrl!
+    : _defaultPlantImageUrl;
+```
+
+---
+
+### Screenshots
+
+| Description | Path |
+|-------------|------|
+| Firestore data in Firebase Console | `assets/screenshots/firestore_console.png` |
+| Dashboard displaying Firestore plants | `assets/screenshots/dashboard_firestore.png` |
+| Profile screen with plant count | `assets/screenshots/profile_firestore.png` |
+
+> Replace the above paths with your actual screenshot locations after capturing them.
+
+---
+
+### Reflection
+
+#### Which read method was used?
+
+- **StreamBuilder** for the plants subcollection — so the plant list and stats update in real time when data changes in Firestore.
+- **FutureBuilder** for the user document — one-time read of profile data (e.g. display name) in the greeting, with no need for live updates.
+
+#### Why are real-time streams useful?
+
+- No manual refresh; changes in Firestore appear in the app immediately.
+- Good for dashboards, lists, and feeds.
+- Supports collaboration and live updates across devices.
+- Fewer network calls and simpler logic than polling.
+
+#### Challenges faced
+
+- **Firestore Timestamp handling**: `PlantModel.fromFirestore` must support both `Timestamp` and `String` for `createdAt`/`lastWatered` to handle different storage formats.
+- **Empty states**: Need clear UI for no plants, loading, and error states.
+- **Image fallbacks**: Plants without `imageUrl` need a default image and error handling for failed loads.
+
