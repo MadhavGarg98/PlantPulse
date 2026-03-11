@@ -23,16 +23,24 @@ class PlantModel {
 
   // Create a PlantModel from Firestore document
   factory PlantModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data() as Map<String, dynamic>? ?? {};
     return PlantModel(
       id: doc.id,
-      name: data['name'] ?? '',
-      type: data['type'] ?? '',
-      createdAt: data['createdAt'] ?? '',
-      lastWatered: data['lastWatered'] ?? '',
-      imageUrl: data['imageUrl'],
-      notes: data['notes'],
+      name: data['name'] as String? ?? '',
+      type: data['type'] as String? ?? '',
+      createdAt: _valueToIsoString(data['createdAt']),
+      lastWatered: _valueToIsoString(data['lastWatered']),
+      imageUrl: data['imageUrl'] as String?,
+      notes: data['notes'] as String?,
     );
+  }
+
+  static String _valueToIsoString(dynamic value) {
+    if (value == null) return '';
+    if (value is Timestamp) return value.toDate().toIso8601String();
+    if (value is String) return value;
+    if (value is DateTime) return value.toIso8601String();
+    return value.toString();
   }
 
   // Convert PlantModel to Map for Firestore
