@@ -16,6 +16,7 @@ import 'screens/custom_widgets_demo.dart';
 import 'screens/mediaquery_layoutbuilder_demo.dart';
 import 'screens/animation_demo.dart';
 import 'screens/splash_screen.dart';
+import 'screens/firestore_demo_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -132,6 +133,7 @@ class PlantPulseApp extends StatelessWidget {
         '/user-form': (context) => const UserInputForm(),
         '/adaptive-demo': (context) => const AdaptiveDemoScreen(),
         '/animation-demo': (context) => const AnimationDemo(),
+        '/firestore-demo': (context) => const FirestoreDemoScreen(),
       },
     );
   }
