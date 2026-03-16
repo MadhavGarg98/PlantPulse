@@ -1597,7 +1597,6 @@ Subtle transitions between screens and animated feedback on actions (like adding
      ```
    - After verifying the behavior, revert `initialRoute` back to `'/'` to restore the original authentication flow.
 
-
 ---
 
 # 🔄 Persistent User Session Handling with Firebase Auth
@@ -1879,4 +1878,5 @@ This implementation is production-ready with:
 ---
 
 *This project demonstrates the power of combining Flutter's reactive UI with Firebase's real-time backend capabilities for creating modern, scalable mobile applications with persistent user sessions.*
+
 
