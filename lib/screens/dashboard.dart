@@ -126,6 +126,16 @@ class _DashboardScreenState extends State<DashboardScreen>
             style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[700]),
             textAlign: TextAlign.center,
           ),
+          IconButton(
+            onPressed: _logout,
+            icon: const Icon(Icons.logout),
+          ),
+          IconButton(
+            onPressed: () => Navigator.pushNamed(context, '/firestore-demo'),
+            icon: const Icon(Icons.storage),
+            tooltip: 'Firestore Demo',
+          ),
+
         ],
       ),
     );
