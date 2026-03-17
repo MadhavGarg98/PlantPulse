@@ -31,6 +31,7 @@ class _FirestoreDemoScreenState extends State<FirestoreDemoScreen> with TickerPr
   // Form controllers
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _priorityController = TextEditingController(text: '5');
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   
   // Animation controllers
@@ -44,6 +45,11 @@ class _FirestoreDemoScreenState extends State<FirestoreDemoScreen> with TickerPr
   // State variables
   bool _isLoading = false;
   String? _editingTaskId;
+  
+  // Query state for filtering and sorting
+  String _selectedFilter = 'all'; // all, active, completed, high_priority, important_tags
+  String _selectedSort = 'createdAt_desc'; // createdAt_asc, createdAt_desc, title_asc, title_desc
+  int _selectedLimit = 10; // 5, 10, 20, 50
   
   // Real-time sync state
   StreamSubscription<QuerySnapshot>? _tasksSubscription;
@@ -278,12 +284,15 @@ class _FirestoreDemoScreenState extends State<FirestoreDemoScreen> with TickerPr
     try {
       final title = _titleController.text.trim();
       final description = _descriptionController.text.trim();
+      final priority = int.tryParse(_priorityController.text) ?? 5;
       
-      // ADD operation with auto-generated ID
+      // ADD operation with auto-generated ID including priority and tags
       await _firestore.collection('tasks').add({
         'title': title,
         'description': description,
         'isCompleted': false,
+        'priority': priority,
+        'tags': priority > 7 ? ['important', 'urgent'] : ['normal'],
         'userId': _auth.currentUser?.uid,
         'createdAt': Timestamp.now(),
         'updatedAt': Timestamp.now(),
@@ -353,6 +362,7 @@ class _FirestoreDemoScreenState extends State<FirestoreDemoScreen> with TickerPr
       _editingTaskId = task.id;
       _titleController.text = data['title'] ?? '';
       _descriptionController.text = data['description'] ?? '';
+      _priorityController.text = (data['priority'] ?? 5).toString();
     });
     
     // Add document-level listener for real-time updates on this specific task
@@ -365,6 +375,7 @@ class _FirestoreDemoScreenState extends State<FirestoreDemoScreen> with TickerPr
       _editingTaskId = null;
       _titleController.clear();
       _descriptionController.clear();
+      _priorityController.text = '5';
     });
     _formKey.currentState?.reset();
   }
@@ -379,6 +390,102 @@ class _FirestoreDemoScreenState extends State<FirestoreDemoScreen> with TickerPr
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
+  }
+  
+  // QUERY BUILDING METHODS
+  Query _buildTasksQuery() {
+    Query query = _firestore.collection('tasks');
+    
+    // Apply where filters based on selection
+    switch (_selectedFilter) {
+      case 'active':
+        query = query.where('isCompleted', isEqualTo: false);
+        break;
+      case 'completed':
+        query = query.where('isCompleted', isEqualTo: true);
+        break;
+      case 'high_priority':
+        query = query.where('priority', isGreaterThan: 5);
+        break;
+      case 'important_tags':
+        query = query.where('tags', arrayContains: 'important');
+        break;
+      case 'all':
+      default:
+        // No filter for all tasks
+        break;
+    }
+    
+    // Apply user filter
+    query = query.where('userId', isEqualTo: _auth.currentUser?.uid);
+    
+    // Apply orderBy based on selection
+    switch (_selectedSort) {
+      case 'createdAt_asc':
+        query = query.orderBy('createdAt', descending: false);
+        break;
+      case 'createdAt_desc':
+        query = query.orderBy('createdAt', descending: true);
+        break;
+      case 'title_asc':
+        query = query.orderBy('title', descending: false);
+        break;
+      case 'title_desc':
+        query = query.orderBy('title', descending: true);
+        break;
+      default:
+        query = query.orderBy('createdAt', descending: true);
+        break;
+    }
+    
+    // Apply limit
+    query = query.limit(_selectedLimit);
+    
+    return query;
+  }
+  
+  // Get query description for UI
+  String _getQueryDescription() {
+    String filterDesc = '';
+    switch (_selectedFilter) {
+      case 'active':
+        filterDesc = 'Active tasks';
+        break;
+      case 'completed':
+        filterDesc = 'Completed tasks';
+        break;
+      case 'high_priority':
+        filterDesc = 'High priority tasks (priority > 5)';
+        break;
+      case 'important_tags':
+        filterDesc = 'Tasks with "important" tag (arrayContains)';
+        break;
+      case 'all':
+      default:
+        filterDesc = 'All tasks';
+        break;
+    }
+    
+    String sortDesc = '';
+    switch (_selectedSort) {
+      case 'createdAt_asc':
+        sortDesc = 'oldest first';
+        break;
+      case 'createdAt_desc':
+        sortDesc = 'newest first';
+        break;
+      case 'title_asc':
+        sortDesc = 'A-Z';
+        break;
+      case 'title_desc':
+        sortDesc = 'Z-A';
+        break;
+      default:
+        sortDesc = 'newest first';
+        break;
+    }
+    
+    return '$filterDesc, sorted by $sortDesc, limited to $_selectedLimit';
   }
   
   @override
@@ -475,6 +582,10 @@ class _FirestoreDemoScreenState extends State<FirestoreDemoScreen> with TickerPr
                 _buildFormSection(),
                 const SizedBox(height: 32),
                 
+                // Query Controls Section
+                _buildQueryControlsSection(),
+                const SizedBox(height: 32),
+                
                 // Real-time Activity Feed
                 _buildActivityFeedSection(),
                 const SizedBox(height: 32),
@@ -485,6 +596,188 @@ class _FirestoreDemoScreenState extends State<FirestoreDemoScreen> with TickerPr
             ),
           ),
         ),
+      ),
+    );
+  }
+  
+  // QUERY CONTROLS SECTION
+  Widget _buildQueryControlsSection() {
+    return Card(
+      elevation: 4,
+      shadowColor: Colors.black.withValues(alpha: 0.1),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            colors: [Colors.white, const Color(0xFFF8FFFE)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.filter_list,
+                  color: const Color(0xFF1B5E20),
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Firestore Query Controls',
+                  style: GoogleFonts.inter(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF1B5E20),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _getQueryDescription(),
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: const Color(0xFF6B7280),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Filter Controls
+            Text(
+              'Where Filters',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF1B5E20),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildFilterChip('all', 'All Tasks'),
+                _buildFilterChip('active', 'Active'),
+                _buildFilterChip('completed', 'Completed'),
+                _buildFilterChip('high_priority', 'High Priority'),
+                _buildFilterChip('important_tags', 'Important Tags'),
+              ],
+            ),
+            const SizedBox(height: 24),
+            
+            // Sort Controls
+            Text(
+              'OrderBy Sorting',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF1B5E20),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildSortChip('createdAt_desc', 'Newest First'),
+                _buildSortChip('createdAt_asc', 'Oldest First'),
+                _buildSortChip('title_asc', 'Title A-Z'),
+                _buildSortChip('title_desc', 'Title Z-A'),
+              ],
+            ),
+            const SizedBox(height: 24),
+            
+            // Limit Controls
+            Text(
+              'Limit Results',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF1B5E20),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildLimitChip(5, '5'),
+                _buildLimitChip(10, '10'),
+                _buildLimitChip(20, '20'),
+                _buildLimitChip(50, '50'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildFilterChip(String value, String label) {
+    final isSelected = _selectedFilter == value;
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (selected) {
+        setState(() {
+          _selectedFilter = value;
+        });
+        _addActivityLog('Filter changed to: $label', 'info');
+      },
+      backgroundColor: Colors.grey.shade100,
+      selectedColor: const Color(0xFF1B5E20).withValues(alpha: 0.2),
+      checkmarkColor: const Color(0xFF1B5E20),
+      labelStyle: GoogleFonts.inter(
+        color: isSelected ? const Color(0xFF1B5E20) : Colors.grey.shade700,
+        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+      ),
+    );
+  }
+  
+  Widget _buildSortChip(String value, String label) {
+    final isSelected = _selectedSort == value;
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (selected) {
+        setState(() {
+          _selectedSort = value;
+        });
+        _addActivityLog('Sort changed to: $label', 'info');
+      },
+      backgroundColor: Colors.grey.shade100,
+      selectedColor: const Color(0xFF4CAF50).withValues(alpha: 0.2),
+      checkmarkColor: const Color(0xFF4CAF50),
+      labelStyle: GoogleFonts.inter(
+        color: isSelected ? const Color(0xFF4CAF50) : Colors.grey.shade700,
+        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+      ),
+    );
+  }
+  
+  Widget _buildLimitChip(int value, String label) {
+    final isSelected = _selectedLimit == value;
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (selected) {
+        setState(() {
+          _selectedLimit = value;
+        });
+        _addActivityLog('Limit changed to: $value', 'info');
+      },
+      backgroundColor: Colors.grey.shade100,
+      selectedColor: Colors.orange.withValues(alpha: 0.2),
+      checkmarkColor: Colors.orange.shade700,
+      labelStyle: GoogleFonts.inter(
+        color: isSelected ? Colors.orange.shade700 : Colors.grey.shade700,
+        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
       ),
     );
   }
@@ -568,6 +861,27 @@ class _FirestoreDemoScreenState extends State<FirestoreDemoScreen> with TickerPr
                       return null;
                     },
                   ),
+                  const SizedBox(height: 16),
+                  
+                  TextFormField(
+                    controller: _priorityController,
+                    decoration: const InputDecoration(
+                      labelText: 'Priority (1-10)',
+                      hintText: 'Enter task priority',
+                      prefixIcon: Icon(Icons.priority_high),
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter a priority';
+                      }
+                      final priority = int.tryParse(value);
+                      if (priority == null || priority < 1 || priority > 10) {
+                        return 'Priority must be between 1 and 10';
+                      }
+                      return null;
+                    },
+                  ),
                   const SizedBox(height: 24),
                   
                   Row(
@@ -626,11 +940,7 @@ class _FirestoreDemoScreenState extends State<FirestoreDemoScreen> with TickerPr
         const SizedBox(height: 16),
         
         StreamBuilder<QuerySnapshot>(
-          stream: _firestore
-              .collection('tasks')
-              .where('userId', isEqualTo: _auth.currentUser?.uid)
-              .orderBy('createdAt', descending: true)
-              .snapshots(),
+          stream: _buildTasksQuery().snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
@@ -693,6 +1003,8 @@ class _FirestoreDemoScreenState extends State<FirestoreDemoScreen> with TickerPr
                 final task = tasks[index];
                 final data = task.data() as Map<String, dynamic>;
                 final isCompleted = data['isCompleted'] ?? false;
+                final priority = data['priority'] ?? 5;
+                final tags = List<String>.from(data['tags'] ?? []);
                 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
@@ -806,6 +1118,39 @@ class _FirestoreDemoScreenState extends State<FirestoreDemoScreen> with TickerPr
                         const SizedBox(height: 12),
                         Row(
                           children: [
+                            // Priority Badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: priority > 7 ? Colors.red.shade100 : 
+                                       priority > 4 ? Colors.orange.shade100 : Colors.green.shade100,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.priority_high,
+                                    size: 12,
+                                    color: priority > 7 ? Colors.red.shade700 : 
+                                           priority > 4 ? Colors.orange.shade700 : Colors.green.shade700,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'P$priority',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: priority > 7 ? Colors.red.shade700 : 
+                                             priority > 4 ? Colors.orange.shade700 : Colors.green.shade700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            
+                            // Status Badge
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
@@ -822,6 +1167,30 @@ class _FirestoreDemoScreenState extends State<FirestoreDemoScreen> with TickerPr
                               ),
                             ),
                             const Spacer(),
+                            
+                            // Tags
+                            if (tags.isNotEmpty) ...[
+                              Wrap(
+                                spacing: 4,
+                                children: tags.map((tag) => Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.purple.shade100,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    tag,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.purple.shade700,
+                                    ),
+                                  ),
+                                )).toList(),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                            
                             if (data['userId'] != null)
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
