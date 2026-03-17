@@ -1597,3 +1597,286 @@ Subtle transitions between screens and animated feedback on actions (like adding
      ```
    - After verifying the behavior, revert `initialRoute` back to `'/'` to restore the original authentication flow.
 
+
+---
+
+# 🔄 Persistent User Session Handling with Firebase Auth
+
+## Overview
+
+PlantPulse implements robust persistent user session management using Firebase Authentication's built-in session persistence. This ensures users remain logged in across app restarts, device reboots, and browser refreshes without requiring manual login each time.
+
+## How Firebase Session Persistence Works
+
+Firebase Authentication automatically handles session persistence using secure tokens stored on the device:
+
+- **Automatic Token Management**: Firebase stores authentication tokens securely on the device
+- **Background Token Refresh**: Tokens automatically refresh in the background
+- **Cross-Platform Consistency**: Same behavior across iOS, Android, Web, and Desktop
+- **No Manual Storage Required**: No need for SharedPreferences or other local storage solutions
+
+## Implementation Details
+
+### AuthWrapper with StreamBuilder
+
+The core of our session handling is in the `AuthWrapper` widget that uses `FirebaseAuth.instance.authStateChanges()`:
+
+```dart
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        // Show splash screen while checking auth state
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SplashScreen();
+        }
+        
+        // User is authenticated, show dashboard
+        if (snapshot.hasData) {
+          return DashboardScreen(user: snapshot.data!);
+        } else {
+          // User is not authenticated, show login screen
+          return const PremiumLoginScreen();
+        }
+      },
+    );
+  }
+}
+```
+
+### Splash Screen for Better UX
+
+While Firebase checks the authentication state, we display a professional splash screen:
+
+```dart
+class SplashScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF6F8F7),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Plant Logo/Icon with gradient
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1B5E20), Color(0xFF4CAF50)],
+                ),
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.local_florist, size: 60, color: Colors.white),
+            ),
+            const SizedBox(height: 32),
+            Text('PlantPulse', style: GoogleFonts.inter(fontSize: 32, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 16),
+            Text('Nurturing Your Digital Garden', style: GoogleFonts.inter(fontSize: 16)),
+            const SizedBox(height: 60),
+            // Loading indicator
+            CircularProgressIndicator(
+              strokeWidth: 3,
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1B5E20)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+```
+
+### Auto-Login Flow
+
+The app automatically handles navigation based on authentication state:
+
+1. **App Starts** → `AuthWrapper` listens to `authStateChanges()`
+2. **Checking State** → Shows `SplashScreen` while Firebase validates tokens
+3. **User Authenticated** → Auto-navigates to `DashboardScreen`
+4. **User Not Authenticated** → Shows `PremiumLoginScreen`
+
+### Clean Logout Implementation
+
+Logout functionality properly clears the session and redirects to login:
+
+```dart
+Future<void> _logout() async {
+  await _authService.signOut();
+  
+  if (mounted) {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const PremiumLoginScreen()),
+      (route) => false,
+    );
+  }
+}
+```
+
+## Testing Persistent Login Behavior
+
+### Test Scenario 1: First-Time Login
+1. **Action**: Login with valid credentials
+2. **Expected**: Navigate to DashboardScreen
+3. **Verify**: User data displayed correctly
+
+### Test Scenario 2: App Restart (Persistent Session)
+1. **Action**: Close and reopen the app
+2. **Expected**: Brief splash screen, then auto-navigate to DashboardScreen
+3. **Verify**: No login prompt, user remains authenticated
+
+### Test Scenario 3: Browser Refresh (Web)
+1. **Action**: Refresh browser window
+2. **Expected**: Brief loading, then return to DashboardScreen
+3. **Verify**: Session maintained across refresh
+
+### Test Scenario 4: Logout
+1. **Action**: Click logout button
+2. **Expected**: Navigate to login screen
+3. **Verify**: Session cleared, must login again
+
+### Test Scenario 5: Logout + Restart
+1. **Action**: Logout, close app, reopen
+2. **Expected**: Show login screen (not dashboard)
+3. **Verify**: Session properly invalidated
+
+## Session Flow Diagram
+
+```
+┌─────────────────┐
+│   App Start     │
+└─────────┬───────┘
+          │
+    ┌─────▼─────┐
+    │SplashScreen│ ← Firebase checks session
+    └─────┬─────┘
+          │
+    ┌─────▼─────┐
+    │Auth State │ ← Firebase returns result
+    │Check      │
+    └─────┬─────┘
+          │
+     ┌────▼────┐
+     │ Has Data│───Yes───→ DashboardScreen
+     └────┬────┘
+          │No
+     ┌────▼────┐
+     │LoginScreen│
+     └─────────┘
+```
+
+## Benefits of Firebase Session Persistence
+
+### 1. Enhanced User Experience
+- No repeated login requirements
+- Seamless app experience across sessions
+- Professional feel with auto-login
+
+### 2. Security
+- Secure token storage managed by Firebase
+- Automatic token refresh prevents expiration
+- No manual token handling required
+
+### 3. Cross-Platform Consistency
+- Same behavior across all platforms
+- No platform-specific session management
+- Unified authentication flow
+
+### 4. Development Efficiency
+- Minimal code required for robust session handling
+- No need for custom storage solutions
+- Firebase handles edge cases automatically
+
+## Error Handling & Edge Cases
+
+### Token Expiration
+- **Automatic**: Firebase refreshes tokens before expiration
+- **Manual**: If token becomes invalid, `authStateChanges()` emits null
+- **Result**: App automatically redirects to login screen
+
+### Network Issues
+- **Offline**: User remains logged in with cached credentials
+- **Reconnection**: Firebase syncs session state when connection restored
+- **Graceful**: No error messages for temporary network issues
+
+### Account Changes
+- **Password Change**: Invalidates existing sessions across all devices
+- **Account Deletion**: Immediately revokes authentication
+- **Email Change**: Maintains session with updated credentials
+
+## Firebase Console Verification
+
+Monitor authentication state in Firebase Console:
+
+1. **Navigate**: Firebase Console → Authentication → Users
+2. **Verify**: User exists with correct email
+3. **Check**: Last sign-in timestamp updates
+4. **Confirm**: Session tied to Firebase, not local storage
+
+## Screenshots for Documentation
+
+### Required Screenshots
+1. **Login Screen**: Initial authentication interface
+2. **Dashboard After Login**: Successful authentication result
+3. **Splash Screen**: Loading state during session check
+4. **Auto-Login After Restart**: Dashboard appearing without login prompt
+5. **Logout Flow**: Return to login screen after logout
+
+### Screenshot File Locations
+- `assets/screenshots/login-screen.png`
+- `assets/screenshots/dashboard-after-login.png`
+- `assets/screenshots/splash-screen.png`
+- `assets/screenshots/auto-login-restart.png`
+- `assets/screenshots/logout-flow.png`
+
+## Reflection
+
+### Why Persistent Login is Essential
+Persistent login is crucial for modern mobile apps because:
+- **User Expectation**: Users expect apps to remember them
+- **Retention**: Reduces friction and improves user retention
+- **Professionalism**: Standard feature in quality applications
+- **Convenience**: Eliminates repeated authentication steps
+
+### How Firebase Simplifies Session Handling
+Firebase makes session management effortless by:
+- **Automatic Token Storage**: No manual storage implementation needed
+- **Background Refresh**: Tokens refresh without user intervention
+- **Cross-Platform Sync**: Consistent behavior across all platforms
+- **Security**: Built-in security best practices for token management
+
+### Challenges Faced and Solutions
+**Challenge**: Initial implementation complexity with stream handling
+**Solution**: Used StreamBuilder with proper connection state management
+
+**Challenge**: Loading state UX during authentication check
+**Solution**: Created professional splash screen for smooth transition
+
+**Challenge**: Handling logout and navigation stack cleanup
+**Solution**: Used `pushAndRemoveUntil` to clear navigation stack
+
+### Production Readiness
+This implementation is production-ready with:
+- ✅ Robust error handling
+- ✅ Smooth user experience
+- ✅ Security best practices
+- ✅ Cross-platform compatibility
+- ✅ Comprehensive testing scenarios
+
+---
+
+*This project demonstrates the power of combining Flutter's reactive UI with Firebase's real-time backend capabilities for creating modern, scalable mobile applications with persistent user sessions.*
+

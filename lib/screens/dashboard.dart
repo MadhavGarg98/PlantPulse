@@ -179,7 +179,12 @@ class _DashboardScreenState extends State<DashboardScreen>
           IconButton(
             onPressed: _logout,
             icon: const Icon(Icons.logout),
-          )
+          ),
+          IconButton(
+            onPressed: () => Navigator.pushNamed(context, '/firestore-demo'),
+            icon: const Icon(Icons.storage),
+            tooltip: 'Firestore Demo',
+          ),
         ],
       ),
     );
