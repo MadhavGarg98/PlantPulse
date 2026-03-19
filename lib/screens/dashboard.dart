@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/plant_model.dart';
 import '../services/firebase_service.dart';
 import '../services/firestore_service.dart';
+import '../services/firebase_storage_service.dart';
 import 'premium_login_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -21,6 +23,8 @@ class _DashboardScreenState extends State<DashboardScreen>
   final AuthService _authService = AuthService();
 
   late AnimationController _fadeController;
+  bool _isUploading = false;
+  double _uploadProgress = 0.0;
 
   @override
   void initState() {
@@ -52,53 +56,162 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
   }
 
+  Future<void> _pickAndUploadImage() async {
+    try {
+      final XFile? image = await FirebaseStorageService.pickImage();
+      if (image != null) {
+        setState(() {
+          _isUploading = true;
+          _uploadProgress = 0.0;
+        });
+
+        // Show upload progress
+        FirebaseStorageService.getUploadProgress(image).listen((TaskSnapshot snapshot) {
+          setState(() {
+            _uploadProgress = snapshot.bytesTransferred / snapshot.totalBytes;
+          });
+        });
+
+        // Upload image
+        final String? downloadUrl = await FirebaseStorageService.uploadImage(
+          image,
+          customFileName: 'plant_${DateTime.now().millisecondsSinceEpoch}',
+        );
+
+        setState(() {
+          _isUploading = false;
+        });
+
+        if (downloadUrl != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Image uploaded successfully! 🌿'),
+              backgroundColor: Color(0xFF1B5E20),
+            ),
+          );
+          
+          // You can now use this downloadUrl to save to Firestore
+          print('Uploaded image URL: $downloadUrl');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to upload image'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _isUploading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F7),
       body: FadeTransition(
         opacity: _fadeController,
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildGreeting(),
-                const SizedBox(height: 28),
-                StreamBuilder(
-                  stream: _firestoreService.getUserPlants(widget.user.uid),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasError) {
-                      return _buildErrorState(snapshot.error.toString());
-                    }
-                    if (!snapshot.hasData || snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(32),
-                          child: CircularProgressIndicator(
-                            color: Color(0xFF1B5E20),
-                          ),
-                        ),
-                      );
-                    }
-                    final plants = snapshot.data!.docs
-                        .map((doc) => PlantModel.fromFirestore(doc))
-                        .toList();
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildPlantHealth(plants),
-                        const SizedBox(height: 28),
-                        _buildTodaysCare(plants),
-                        const SizedBox(height: 28),
-                        _buildMyPlants(plants),
-                      ],
-                    );
-                  },
+        child: Stack(
+          children: [
+            SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildGreeting(),
+                    const SizedBox(height: 28),
+                    StreamBuilder(
+                      stream: _firestoreService.getUserPlants(widget.user.uid),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasError) {
+                          return _buildErrorState(snapshot.error.toString());
+                        }
+                        if (!snapshot.hasData || snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(32),
+                              child: CircularProgressIndicator(
+                                color: Color(0xFF1B5E20),
+                              ),
+                            ),
+                          );
+                        }
+                        final plants = snapshot.data!.docs
+                            .map((doc) => PlantModel.fromFirestore(doc))
+                            .toList();
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildPlantHealth(plants),
+                            const SizedBox(height: 28),
+                            _buildTodaysCare(plants),
+                            const SizedBox(height: 28),
+                            _buildMyPlants(plants),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
+            if (_isUploading)
+              _buildUploadProgressOverlay(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUploadProgressOverlay() {
+    return Container(
+      color: Colors.black54,
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(
+                color: Color(0xFF1B5E20),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Uploading image...',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
+              LinearProgressIndicator(
+                value: _uploadProgress,
+                backgroundColor: Colors.grey[300],
+                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1B5E20)),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${(_uploadProgress * 100).toInt()}%',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -135,7 +248,11 @@ class _DashboardScreenState extends State<DashboardScreen>
             icon: const Icon(Icons.storage),
             tooltip: 'Firestore Demo',
           ),
-
+          IconButton(
+            onPressed: () => Navigator.pushNamed(context, '/image-upload', arguments: widget.user),
+            icon: const Icon(Icons.photo_library),
+            tooltip: 'Image Upload',
+          ),
         ],
       ),
     );
@@ -181,6 +298,11 @@ class _DashboardScreenState extends State<DashboardScreen>
               IconButton(
                 onPressed: _logout,
                 icon: const Icon(Icons.logout),
+              ),
+              IconButton(
+                onPressed: _pickAndUploadImage,
+                icon: const Icon(Icons.photo_camera),
+                tooltip: 'Upload Plant Photo',
               ),
             ],
           ),
@@ -462,6 +584,22 @@ class _DashboardScreenState extends State<DashboardScreen>
                 },
               ),
       ],
+    );
+  }
+}
+
+// Floating Action Button for Image Upload
+class UploadFab extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const UploadFab({super.key, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return FloatingActionButton(
+      onPressed: onPressed,
+      backgroundColor: const Color(0xFF1B5E20),
+      child: const Icon(Icons.add_a_photo, color: Colors.white),
     );
   }
 }

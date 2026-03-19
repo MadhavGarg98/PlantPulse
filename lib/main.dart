@@ -17,6 +17,7 @@ import 'screens/mediaquery_layoutbuilder_demo.dart';
 import 'screens/animation_demo.dart';
 import 'screens/splash_screen.dart';
 import 'screens/firestore_demo_screen.dart';
+import 'screens/image_upload_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -134,6 +135,10 @@ class PlantPulseApp extends StatelessWidget {
         '/adaptive-demo': (context) => const AdaptiveDemoScreen(),
         '/animation-demo': (context) => const AnimationDemo(),
         '/firestore-demo': (context) => const FirestoreDemoScreen(),
+        '/image-upload': (context) {
+          final user = ModalRoute.of(context)!.settings.arguments as User?;
+          return user != null ? ImageUploadScreen(user: user) : const AuthWrapper();
+        },
       },
     );
   }
