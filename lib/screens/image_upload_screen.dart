@@ -31,7 +31,7 @@ class _ImageUploadScreenState extends State<ImageUploadScreen> {
         });
 
         // Show upload progress
-        FirebaseStorageService.getUploadProgress(image).listen((TaskSnapshot snapshot) {
+        FirebaseStorageService.getUploadProgress(image).listen((snapshot) {
           setState(() {
             _uploadProgress = snapshot.bytesTransferred / snapshot.totalBytes;
           });
