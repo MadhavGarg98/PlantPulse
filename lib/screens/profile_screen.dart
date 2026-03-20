@@ -96,14 +96,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             const SizedBox(height: 40),
 
-            /// Plant Count Card
+            /// Plant Count Card (real-time from Firestore)
             StreamBuilder(
               stream: _firestoreService.getUserPlants(user.uid),
               builder: (context, snapshot) {
                 int plantCount = 0;
 
-                if (snapshot.hasData) {
+                if (snapshot.hasData && snapshot.data != null) {
                   plantCount = snapshot.data!.docs.length;
+                } else if (snapshot.hasError) {
+                  plantCount = 0; // Fallback on error
                 }
 
                 return Container(
