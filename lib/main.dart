@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'firebase_options.dart';
+import 'services/notification_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/about_screen.dart';
 import 'screens/profile_screen.dart';
@@ -18,12 +19,17 @@ import 'screens/animation_demo.dart';
 import 'screens/splash_screen.dart';
 import 'screens/firestore_demo_screen.dart';
 import 'screens/image_upload_screen.dart';
+import 'screens/push_notification_demo_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  
+  // Initialize notification service
+  await NotificationService().initialize();
+  
   runApp(const PlantPulseApp());
 }
 
@@ -35,6 +41,7 @@ class PlantPulseApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'PlantPulse',
+      navigatorKey: navigatorKey, // Add navigator key for notification navigation
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF1B5E20),
@@ -139,6 +146,7 @@ class PlantPulseApp extends StatelessWidget {
           final user = ModalRoute.of(context)!.settings.arguments as User?;
           return user != null ? ImageUploadScreen(user: user) : const AuthWrapper();
         },
+        '/push-notifications': (context) => const PushNotificationDemoScreen(),
       },
     );
   }
