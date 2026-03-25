@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/firebase_service.dart';
 import '../services/firestore_service.dart';
 import 'premium_login_screen.dart';
@@ -15,163 +15,388 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final AuthService _authService = AuthService();
   final FirestoreService _firestoreService = FirestoreService();
+  final AuthService _authService = AuthService();
+  
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _bioController = TextEditingController();
+  
+  bool _isLoading = false;
+  bool _isEditing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final docSnapshot = await _firestoreService.getUserData(widget.user.uid);
+      if (docSnapshot.exists) {
+        final data = docSnapshot.data() as Map<String, dynamic>?;
+        setState(() {
+          _nameController.text = data?['name'] ?? widget.user.displayName ?? '';
+          _emailController.text = widget.user.email ?? '';
+          _phoneController.text = data?['phone'] ?? '';
+          _bioController.text = data?['bio'] ?? '';
+        });
+      } else {
+        setState(() {
+          _nameController.text = widget.user.displayName ?? '';
+          _emailController.text = widget.user.email ?? '';
+        });
+      }
+    } catch (e) {
+      print('Error loading user data: $e');
+    }
+  }
+
+  Future<void> _updateProfile() async {
+    if (_nameController.text.trim().isEmpty) {
+      _showMessage('Please enter your name', Colors.red);
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Update display name in Firebase Auth
+      await widget.user.updateDisplayName(_nameController.text.trim());
+
+      // Update additional data in Firestore
+      await _firestoreService.updateUserData(widget.user.uid, {
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'bio': _bioController.text.trim(),
+        'updatedAt': DateTime.now().toIso8601String(),
+      });
+
+      setState(() {
+        _isEditing = false;
+        _isLoading = false;
+      });
+
+      _showMessage('Profile updated successfully!', Colors.green);
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      _showMessage('Failed to update profile: $e', Colors.red);
+    }
+  }
+
+  void _showMessage(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+      ),
+    );
+  }
 
   Future<void> _logout() async {
-    await _authService.signOut();
-
-    if (!mounted) return;
-
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const PremiumLoginScreen()),
-      (route) => false,
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Logout',
+          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+        ),
+        content: Text(
+          'Are you sure you want to logout?',
+          style: GoogleFonts.inter(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.inter(color: Colors.grey[600]),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1B5E20),
+              foregroundColor: Colors.white,
+            ),
+            child: Text(
+              'Logout',
+              style: GoogleFonts.inter(),
+            ),
+          ),
+        ],
+      ),
     );
+
+    if (shouldLogout == true) {
+      await _authService.signOut();
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const PremiumLoginScreen()),
+          (route) => false,
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = widget.user;
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7F6),
+      backgroundColor: const Color(0xFFF6F8F7),
       appBar: AppBar(
+        backgroundColor: const Color(0xFFF6F8F7),
         elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: const Color(0xFF1B5E20),
         title: Text(
-          "My Profile",
+          'Profile',
           style: GoogleFonts.inter(
+            fontSize: 20,
             fontWeight: FontWeight.w600,
+            color: const Color(0xFF1B5E20),
           ),
         ),
-        centerTitle: true,
+        actions: [
+          IconButton(
+            onPressed: () {
+              setState(() {
+                _isEditing = !_isEditing;
+              });
+            },
+            icon: Icon(
+              _isEditing ? Icons.check : Icons.edit,
+              color: const Color(0xFF1B5E20),
+            ),
+            tooltip: _isEditing ? 'Save' : 'Edit',
+          ),
+        ],
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            const SizedBox(height: 10),
-
-            /// Profile Image
-            CircleAvatar(
-              radius: 55,
-              backgroundColor:
-                  const Color(0xFF1B5E20).withValues(alpha: 0.1),
-              backgroundImage: user.photoURL != null
-                  ? NetworkImage(user.photoURL!)
-                  : null,
-              child: user.photoURL == null
-                  ? const Icon(
-                      Icons.person,
-                      size: 55,
-                      color: Color(0xFF1B5E20),
-                    )
-                  : null,
-            ),
-
-            const SizedBox(height: 20),
-
-            /// Name
-            Text(
-              user.displayName ?? "PlantPulse User",
-              style: GoogleFonts.inter(
-                fontSize: 22,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF1B5E20),
-              ),
-            ),
-
-            const SizedBox(height: 6),
-
-            /// Email
-            Text(
-              user.email ?? "",
-              style: GoogleFonts.inter(
-                fontSize: 15,
-                color: Colors.grey[700],
-              ),
-            ),
-
-            const SizedBox(height: 40),
-
-            /// Plant Count Card (real-time from Firestore)
-            StreamBuilder(
-              stream: _firestoreService.getUserPlants(user.uid),
-              builder: (context, snapshot) {
-                int plantCount = 0;
-
-                if (snapshot.hasData && snapshot.data != null) {
-                  plantCount = snapshot.data!.docs.length;
-                } else if (snapshot.hasError) {
-                  plantCount = 0; // Fallback on error
-                }
-
-                return Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 25, horizontal: 20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 5),
-                      )
-                    ],
+            // Profile Header
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
-                  child: Column(
+                ],
+              ),
+              child: Column(
+                children: [
+                  // Profile Image
+                  Stack(
                     children: [
-                      const Icon(
-                        Icons.eco,
-                        color: Color(0xFF1B5E20),
-                        size: 36,
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        "$plantCount Plants",
-                        style: GoogleFonts.inter(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
+                      Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1B5E20),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 3),
+                        ),
+                        child: ClipOval(
+                          child: widget.user.photoURL != null
+                              ? Image.network(
+                                  widget.user.photoURL!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    color: Colors.grey[300],
+                                    child: const Icon(
+                                      Icons.person,
+                                      color: Colors.white,
+                                      size: 40,
+                                    ),
+                                  ),
+                                )
+                              : Container(
+                                  color: Colors.grey[300],
+                                  child: const Icon(
+                                    Icons.person,
+                                    color: Colors.white,
+                                    size: 40,
+                                  ),
+                                ),
                         ),
                       ),
-                      const SizedBox(height: 5),
-                      Text(
-                        "You're growing beautifully 🌿",
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: Colors.grey[600],
+                      if (_isEditing)
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            width: 30,
+                            height: 30,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF1B5E20),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                          ),
                         ),
-                      ),
                     ],
                   ),
-                );
-              },
+                  const SizedBox(height: 16),
+                  Text(
+                    _nameController.text.isNotEmpty ? _nameController.text : 'Plant Lover',
+                    style: GoogleFonts.inter(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1B5E20),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _emailController.text,
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
             ),
+            const SizedBox(height: 24),
 
-            const Spacer(),
+            // Profile Form
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Personal Information',
+                    style: GoogleFonts.inter(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1B5E20),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
 
-            /// Logout Button
-            SizedBox(
+                  // Name Field
+                  _buildTextField(
+                    controller: _nameController,
+                    label: 'Full Name',
+                    icon: Icons.person,
+                    enabled: _isEditing,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Email Field
+                  _buildTextField(
+                    controller: _emailController,
+                    label: 'Email',
+                    icon: Icons.email,
+                    enabled: false, // Email cannot be edited
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Phone Field
+                  _buildTextField(
+                    controller: _phoneController,
+                    label: 'Phone Number',
+                    icon: Icons.phone,
+                    enabled: _isEditing,
+                    keyboardType: TextInputType.phone,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Bio Field
+                  _buildTextField(
+                    controller: _bioController,
+                    label: 'Bio',
+                    icon: Icons.info_outline,
+                    enabled: _isEditing,
+                    maxLines: 3,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Action Buttons
+            if (_isEditing)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _updateProfile,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1B5E20),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : Text(
+                          'Update Profile',
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                ),
+              ),
+
+            const SizedBox(height: 16),
+
+            // Logout Button
+            Container(
               width: double.infinity,
-              height: 55,
-              child: ElevatedButton.icon(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: OutlinedButton(
                 onPressed: _logout,
-                icon: const Icon(Icons.logout),
-                label: Text(
-                  "Logout",
-                  style: GoogleFonts.inter(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1B5E20),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                child: Text(
+                  'Logout',
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -179,6 +404,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool enabled = true,
+    int maxLines = 1,
+    TextInputType? keyboardType,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey[700],
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          enabled: enabled,
+          maxLines: maxLines,
+          keyboardType: keyboardType,
+          style: GoogleFonts.inter(
+            fontSize: 16,
+            color: enabled ? Colors.black : Colors.grey,
+          ),
+          decoration: InputDecoration(
+            prefixIcon: Icon(icon, color: Colors.grey[600]),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF1B5E20)),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[200]!),
+            ),
+            filled: true,
+            fillColor: enabled ? Colors.white : Colors.grey[100],
+          ),
+        ),
+      ],
     );
   }
 }

@@ -11,10 +11,6 @@ import 'screens/plant_demo_screen.dart';
 import 'screens/premium_login_screen.dart';
 import 'screens/premium_signup_screen.dart';
 import 'screens/dashboard.dart';
-import 'screens/responsive_layout.dart';
-import 'screens/user_input_form.dart';
-import 'screens/custom_widgets_demo.dart';
-import 'screens/mediaquery_layoutbuilder_demo.dart';
 import 'screens/animation_demo.dart';
 import 'screens/splash_screen.dart';
 import 'screens/firestore_demo_screen.dart';
@@ -122,7 +118,6 @@ class PlantPulseApp extends StatelessWidget {
         '/': (context) => const AuthWrapper(),
         '/login': (context) => const PremiumLoginScreen(),
         '/signup': (context) => const PremiumSignupScreen(),
-        '/demo': (context) => const CustomWidgetsDemo(),
         '/home': (context) {
           final user = ModalRoute.of(context)!.settings.arguments as User?;
           return user != null ? HomeScreen(user: user) : const AuthWrapper();
@@ -137,9 +132,6 @@ class PlantPulseApp extends StatelessWidget {
         },
         '/about': (context) => const AboutScreen(),
         '/plant_demo': (context) => const PlantDemoScreen(),
-        '/responsive': (context) => const ResponsiveLayout(),
-        '/user-form': (context) => const UserInputForm(),
-        '/adaptive-demo': (context) => const AdaptiveDemoScreen(),
         '/animation-demo': (context) => const AnimationDemo(),
         '/firestore-demo': (context) => const FirestoreDemoScreen(),
         '/image-upload': (context) {
