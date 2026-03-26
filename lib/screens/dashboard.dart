@@ -6,9 +6,13 @@ import '../models/plant_model.dart';
 import '../services/firebase_service.dart';
 import '../services/firestore_service.dart';
 import '../services/firebase_storage_service.dart';
+import '../services/watering_schedule_service.dart';
 import 'premium_login_screen.dart';
 import 'profile_screen.dart';
 import 'notification_screen.dart';
+import 'weather_screen.dart';
+import 'plant_schedule_screen.dart';
+import 'watering_analytics_screen.dart';
 import 'dart:math';
 import 'dart:ui' as ui;
 
@@ -25,6 +29,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     with TickerProviderStateMixin {
   final FirestoreService _firestoreService = FirestoreService();
   final AuthService _authService = AuthService();
+  final WateringScheduleService _scheduleService = WateringScheduleService();
 
   late AnimationController _fadeController;
   bool _isUploading = false;
@@ -54,12 +59,40 @@ class _DashboardScreenState extends State<DashboardScreen>
   static const String _defaultPlantImageUrl =
       'https://images.unsplash.com/photo-1416879595882-3373a0480b5b';
 
+  Future<void> _showWeather() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const WeatherScreen()),
+    );
+  }
+
   Future<void> _showNotifications() async {
     // Show notifications page or dialog
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const NotificationScreen()),
     );
+  }
+
+  Future<void> _showWateringAnalytics() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const WateringAnalyticsScreen()),
+    );
+  }
+
+  Future<void> _openPlantSchedule(PlantModel plant) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => PlantScheduleScreen(plant: plant)),
+    );
+    
+    // Refresh the dashboard if schedule was updated
+    if (result == true) {
+      setState(() {
+        _lastRefresh = DateTime.now();
+      });
+    }
   }
 
   Future<void> _logout() async {
@@ -393,22 +426,22 @@ class _DashboardScreenState extends State<DashboardScreen>
         title: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
                 color: const Color(0xFF1B5E20),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
               ),
               child: const Icon(
                 Icons.eco,
                 color: Colors.white,
-                size: 20,
+                size: 18,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Text(
               'PlantPulse',
               style: GoogleFonts.inter(
-                fontSize: 20,
+                fontSize: 18,
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFF1B5E20),
               ),
@@ -416,29 +449,21 @@ class _DashboardScreenState extends State<DashboardScreen>
           ],
         ),
         actions: [
-          Stack(
-            children: [
-              IconButton(
-                onPressed: _showNotifications,
-                icon: const Icon(
-                  Icons.notifications_outlined,
-                  color: Color(0xFF1B5E20),
-                ),
-                tooltip: 'Notifications',
-              ),
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ],
+          IconButton(
+            onPressed: _showWeather,
+            icon: const Icon(
+              Icons.cloud_outlined,
+              color: Color(0xFF1B5E20),
+            ),
+            tooltip: 'Weather & Care',
+          ),
+          IconButton(
+            onPressed: _showWateringAnalytics,
+            icon: const Icon(
+              Icons.analytics_outlined,
+              color: Color(0xFF1B5E20),
+            ),
+            tooltip: 'Watering Analytics',
           ),
           const SizedBox(width: 8),
           GestureDetector(
@@ -447,8 +472,8 @@ class _DashboardScreenState extends State<DashboardScreen>
               MaterialPageRoute(builder: (context) => ProfileScreen(user: widget.user)),
             ),
             child: Container(
-              width: 40,
-              height: 40,
+              width: 36,
+              height: 36,
               margin: const EdgeInsets.only(right: 16),
               decoration: BoxDecoration(
                 color: const Color(0xFF1B5E20),
@@ -465,7 +490,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           child: const Icon(
                             Icons.person,
                             color: Colors.white,
-                            size: 20,
+                            size: 18,
                           ),
                         ),
                       )
@@ -474,7 +499,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         child: const Icon(
                           Icons.person,
                           color: Colors.white,
-                          size: 20,
+                          size: 18,
                         ),
                       ),
               ),
@@ -501,6 +526,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                 context,
                 MaterialPageRoute(builder: (context) => ProfileScreen(user: widget.user)),
               );
+            } else if (index == 2) {
+              _showNotifications();
             }
           },
           backgroundColor: Colors.transparent,
@@ -516,6 +543,11 @@ class _DashboardScreenState extends State<DashboardScreen>
               icon: Icon(Icons.person_outline, color: Color(0xFF1B5E20)),
               activeIcon: Icon(Icons.person, color: Color(0xFF1B5E20)),
               label: 'Profile',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.notifications_outlined, color: Color(0xFF1B5E20)),
+              activeIcon: Icon(Icons.notifications, color: Color(0xFF1B5E20)),
+              label: 'Notifications',
             ),
           ],
         ),
@@ -867,7 +899,86 @@ class _DashboardScreenState extends State<DashboardScreen>
                 ),
               )
             : Column(
-                children: plantsNeedingCare.map((plant) => _buildCareCard(plant)).toList(),
+                children: plantsNeedingCare.map((plant) {
+                  final plantImageUrl = plant.imageUrl != null && plant.imageUrl!.isNotEmpty
+                      ? plant.imageUrl!
+                      : _defaultPlantImageUrl;
+
+                  return Dismissible(
+                    key: Key('care_${plant.id ?? ''}_${DateTime.now().millisecondsSinceEpoch}'),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Icon(
+                        Icons.delete,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    onDismissed: (direction) {
+                      _deletePlant(plant);
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(14),
+                            child: Image.network(
+                              plantImageUrl,
+                              width: 65,
+                              height: 65,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 65,
+                                height: 65,
+                                color: Colors.grey[300],
+                                child: const Icon(Icons.eco, size: 32),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  plant.name,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  plant.type,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => _waterPlant(plant),
+                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E20)),
+                            child: const Text("Water"),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
       ],
     );
@@ -878,58 +989,78 @@ class _DashboardScreenState extends State<DashboardScreen>
         ? plant.imageUrl!
         : _defaultPlantImageUrl;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+    return Dismissible(
+      key: Key('care_${plant.id ?? ''}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Icon(
+          Icons.delete,
+          color: Colors.white,
+          size: 24,
+        ),
       ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: Image.network(
-              imageUrl,
-              width: 65,
-              height: 65,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
+      onDismissed: (direction) {
+        _deletePlant(plant);
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Image.network(
+                imageUrl,
                 width: 65,
                 height: 65,
-                color: Colors.grey[300],
-                child: const Icon(Icons.eco, size: 32),
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  width: 65,
+                  height: 65,
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.eco, size: 32),
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  plant.name,
-                  style: GoogleFonts.inter(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    plant.name,
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                Text(
-                  plant.type,
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    color: Colors.grey[600],
+                  Text(
+                    plant.type,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: Colors.grey[600],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          ElevatedButton(
-            onPressed: () => _waterPlant(plant),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E20)),
-            child: const Text("Water"),
-          ),
-        ],
+            ElevatedButton(
+              onPressed: () => _waterPlant(plant),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E20)),
+              child: const Text("Water"),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -987,12 +1118,27 @@ class _DashboardScreenState extends State<DashboardScreen>
                   childAspectRatio: 0.8,
                 ),
                 itemBuilder: (context, index) {
-                  final plant = plants[index];
-                  final imageUrl = plant.imageUrl != null && plant.imageUrl!.isNotEmpty
-                      ? plant.imageUrl!
-                      : _defaultPlantImageUrl;
-
-                  return _buildPlantCard(plant);
+                  return Dismissible(
+                    key: Key('plant_${plants[index].id ?? ''}_${DateTime.now().millisecondsSinceEpoch}'),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Icon(
+                        Icons.delete,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    onDismissed: (direction) {
+                      _deletePlant(plants[index]);
+                    },
+                    child: _buildPlantCard(plants[index]),
+                  );
                 },
               ),
       ],
@@ -1178,6 +1324,60 @@ class _DashboardScreenState extends State<DashboardScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Failed to water plant: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _deletePlant(PlantModel plant) async {
+    try {
+      // Show confirmation dialog
+      final shouldDelete = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(
+            'Delete Plant',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+          ),
+          content: Text(
+            'Are you sure you want to delete "${plant.name}"? This action cannot be undone.',
+            style: GoogleFonts.inter(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.inter(color: Colors.grey[600]),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(
+                'Delete',
+                style: GoogleFonts.inter(color: Colors.red),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldDelete == true) {
+        // Delete from Firestore
+        await _firestoreService.deletePlantData(widget.user.uid, plant.id ?? '');
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("${plant.name} deleted successfully! 🌱"),
+            backgroundColor: const Color(0xFF1B5E20),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to delete plant: $e"),
           backgroundColor: Colors.red,
         ),
       );

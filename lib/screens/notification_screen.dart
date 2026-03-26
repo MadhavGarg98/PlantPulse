@@ -1,8 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/weather_service.dart';
 
-class NotificationScreen extends StatelessWidget {
+class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
+
+  @override
+  State<NotificationScreen> createState() => _NotificationScreenState();
+}
+
+class _NotificationScreenState extends State<NotificationScreen> {
+  Map<String, dynamic>? _weatherData;
+  bool _isLoadingWeather = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWeatherData();
+  }
+
+  Future<void> _loadWeatherData() async {
+    try {
+      final weatherResult = await WeatherService.getCurrentWeather();
+      if (weatherResult['success'] == true) {
+        setState(() {
+          _weatherData = weatherResult['data'];
+          _isLoadingWeather = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingWeather = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +43,7 @@ class NotificationScreen extends StatelessWidget {
         backgroundColor: const Color(0xFFF6F8F7),
         elevation: 0,
         title: Text(
-          'Notifications',
+          'Notifications & Weather',
           style: GoogleFonts.inter(
             fontSize: 20,
             fontWeight: FontWeight.w600,
@@ -26,11 +57,113 @@ class NotificationScreen extends StatelessWidget {
             color: Color(0xFF1B5E20),
           ),
         ),
+        actions: [
+          IconButton(
+            onPressed: _loadWeatherData,
+            icon: const Icon(
+              Icons.refresh,
+              color: Color(0xFF1B5E20),
+            ),
+            tooltip: 'Refresh Weather',
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+            // Weather Card
+            if (_weatherData != null || _isLoadingWeather)
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      const Color(0xFF1B5E20),
+                      const Color(0xFF2E7D32),
+                      const Color(0xFF4CAF50),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF1B5E20).withOpacity(0.2),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: _isLoadingWeather
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                        ),
+                      )
+                    : Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Current Weather',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 16,
+                                      color: Colors.white.withOpacity(0.9),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    '${(_weatherData!['main']['temp']?.toDouble() ?? 0.0).round()}°C',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 32,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  Text(
+                                    _weatherData!['weather'][0]['description'] ?? '',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 14,
+                                      color: Colors.white.withOpacity(0.9),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                WeatherService.getWeatherIcon(_weatherData!['weather'][0]['icon'] ?? ''),
+                                style: const TextStyle(fontSize: 48),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              _buildWeatherDetail(
+                                '💧',
+                                'Humidity',
+                                '${(_weatherData!['main']['humidity']?.toDouble() ?? 0.0).round()}%',
+                                Colors.white,
+                              ),
+                              _buildWeatherDetail(
+                                '💨',
+                                'Wind',
+                                '${(_weatherData!['wind']?['speed']?.toDouble() ?? 0.0).round()} m/s',
+                                Colors.white,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+              ),
+            const SizedBox(height: 20),
+
             // Today's Notifications
             Container(
               padding: const EdgeInsets.all(20),
@@ -82,95 +215,105 @@ class NotificationScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // Yesterday's Notifications
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Yesterday',
-                    style: GoogleFonts.inter(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF1B5E20),
+            // Weather-based Care Tips
+            if (_weatherData != null)
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildNotificationItem(
-                    '📊 Weekly Report',
-                    'You have 5 healthy plants this week!',
-                    '1 day ago',
-                    Colors.blue,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildNotificationItem(
-                    '🎯 Achievement Unlocked',
-                    'Plant Parent Badge - Care for 10 plants',
-                    '2 days ago',
-                    Colors.purple,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Older Notifications
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'This Week',
-                    style: GoogleFonts.inter(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF1B5E20),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.lightbulb_outline,
+                          color: Color(0xFF1B5E20),
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Weather-based Care Tips',
+                          style: GoogleFonts.inter(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF1B5E20),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildNotificationItem(
-                    '🌱 Welcome to PlantPulse',
-                    'Start your plant care journey today!',
-                    '3 days ago',
-                    const Color(0xFF1B5E20),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildNotificationItem(
-                    '💡 Tip of the Day',
-                    'Did you know? Most houseplants prefer indirect sunlight.',
-                    '4 days ago',
-                    Colors.teal,
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    ...WeatherService.getCareRecommendations(_weatherData!).map((tip) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1B5E20).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFF1B5E20).withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                tip,
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  color: const Color(0xFF1B5E20),
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )),
+                  ],
+                ),
               ),
-            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildWeatherDetail(String emoji, String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(
+          emoji,
+          style: const TextStyle(fontSize: 20),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 11,
+            color: color.withOpacity(0.8),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 

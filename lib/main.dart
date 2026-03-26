@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'firebase_options.dart';
 import 'services/notification_service.dart';
+import 'services/watering_schedule_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/about_screen.dart';
 import 'screens/profile_screen.dart';
@@ -16,6 +17,8 @@ import 'screens/splash_screen.dart';
 import 'screens/firestore_demo_screen.dart';
 import 'screens/image_upload_screen.dart';
 import 'screens/push_notification_demo_screen.dart';
+import 'screens/plant_schedule_screen.dart';
+import 'screens/watering_analytics_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +28,9 @@ void main() async {
   
   // Initialize notification service
   await NotificationService().initialize();
+  
+  // Initialize watering schedule service
+  WateringScheduleService().initializeDailyWeatherCheck();
   
   runApp(const PlantPulseApp());
 }
@@ -139,6 +145,11 @@ class PlantPulseApp extends StatelessWidget {
           return user != null ? ImageUploadScreen(user: user) : const AuthWrapper();
         },
         '/push-notifications': (context) => const PushNotificationDemoScreen(),
+        '/plant-schedule': (context) {
+          final plant = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
+          return plant != null ? PlantScheduleScreen(plant: plant['plant']) : const AuthWrapper();
+        },
+        '/watering-analytics': (context) => const WateringAnalyticsScreen(),
       },
     );
   }
