@@ -1137,7 +1137,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                     onDismissed: (direction) {
                       _deletePlant(plants[index]);
                     },
-                    child: _buildPlantCard(plants[index]),
+                    child: GestureDetector(
+                      onTap: () => _openPlantSchedule(plants[index]),
+                      child: _buildPlantCard(plants[index]),
+                    ),
                   );
                 },
               ),
