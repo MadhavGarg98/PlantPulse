@@ -10,6 +10,9 @@ class PlantModel {
   final String lastWatered;
   final String? imageUrl;
   final String? notes;
+  final bool hasWateringSchedule;
+  final int? wateringFrequencyDays;
+  final String? preferredWateringTime;
 
   PlantModel({
     this.id,
@@ -19,6 +22,9 @@ class PlantModel {
     required this.lastWatered,
     this.imageUrl,
     this.notes,
+    this.hasWateringSchedule = false,
+    this.wateringFrequencyDays,
+    this.preferredWateringTime,
   });
 
   // Create a PlantModel from Firestore document
@@ -32,6 +38,9 @@ class PlantModel {
       lastWatered: _valueToIsoString(data['lastWatered']),
       imageUrl: data['imageUrl'] as String?,
       notes: data['notes'] as String?,
+      hasWateringSchedule: data['hasWateringSchedule'] as bool? ?? false,
+      wateringFrequencyDays: data['wateringFrequencyDays'] as int?,
+      preferredWateringTime: data['preferredWateringTime'] as String?,
     );
   }
 
@@ -52,6 +61,9 @@ class PlantModel {
       'lastWatered': lastWatered,
       if (imageUrl != null) 'imageUrl': imageUrl,
       if (notes != null) 'notes': notes,
+      'hasWateringSchedule': hasWateringSchedule,
+      if (wateringFrequencyDays != null) 'wateringFrequencyDays': wateringFrequencyDays,
+      if (preferredWateringTime != null) 'preferredWateringTime': preferredWateringTime,
     };
   }
 
@@ -64,6 +76,9 @@ class PlantModel {
     String? lastWatered,
     String? imageUrl,
     String? notes,
+    bool? hasWateringSchedule,
+    int? wateringFrequencyDays,
+    String? preferredWateringTime,
   }) {
     return PlantModel(
       id: id ?? this.id,
@@ -73,6 +88,9 @@ class PlantModel {
       lastWatered: lastWatered ?? this.lastWatered,
       imageUrl: imageUrl ?? this.imageUrl,
       notes: notes ?? this.notes,
+      hasWateringSchedule: hasWateringSchedule ?? this.hasWateringSchedule,
+      wateringFrequencyDays: wateringFrequencyDays ?? this.wateringFrequencyDays,
+      preferredWateringTime: preferredWateringTime ?? this.preferredWateringTime,
     );
   }
 

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/plant_model.dart';
 
 /// Firestore service for PlantPulse.
 /// Schema: users/{userId} (profile) -> plants (subcollection) -> plant docs.
@@ -77,6 +78,15 @@ class FirestoreService {
       await _firestore.collection(_usersCollection).doc(uid).collection(_plantsSubcollection).doc(plantId).update(data);
     } catch (e) {
       print('Error updating plant data: $e');
+    }
+  }
+
+  // Update: Update plant (alias for consistency)
+  Future<void> updatePlant(String uid, PlantModel plant) async {
+    try {
+      await _firestore.collection(_usersCollection).doc(uid).collection(_plantsSubcollection).doc(plant.id).update(plant.toFirestore());
+    } catch (e) {
+      print('Error updating plant: $e');
     }
   }
 

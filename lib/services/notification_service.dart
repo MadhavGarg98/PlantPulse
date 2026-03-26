@@ -3,6 +3,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest.dart' as tz;
 
 // Global navigator key for navigation
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -16,6 +18,9 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     print('Message notification: ${message.notification?.title}');
   }
 }
+
+// Initialize the FlutterLocalNotificationsPlugin
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -33,6 +38,9 @@ class NotificationService {
 
   Future<void> initialize() async {
     try {
+      // Initialize timezone
+      tz.initializeTimeZones();
+      
       // Request notification permissions
       await _requestPermissions();
       
@@ -237,9 +245,15 @@ class NotificationService {
         case 'plant_demo':
           navigatorKey.currentState?.pushNamed('/plant_demo');
           break;
+        case 'watering_analytics':
+          navigatorKey.currentState?.pushNamed('/watering-analytics');
+          break;
         default:
           navigatorKey.currentState?.pushNamed('/dashboard');
       }
+    } else if (data['type'] == 'watering_reminder') {
+      // Navigate to dashboard for watering reminders
+      navigatorKey.currentState?.pushNamed('/dashboard');
     } else {
       // Default navigation
       navigatorKey.currentState?.pushNamed('/dashboard');
@@ -277,5 +291,78 @@ class NotificationService {
   // Dispose method
   void dispose() {
     _messageStreamController?.close();
+  }
+
+  // Schedule a local notification
+  Future<void> scheduleNotification({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime scheduledTime,
+    Map<String, String>? payload,
+  }) async {
+    try {
+      await _localNotifications.zonedSchedule(
+        id,
+        title,
+        body,
+        tz.TZDateTime.from(scheduledTime, tz.local),
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'watering_reminders',
+            'Watering Reminders',
+            channelDescription: 'Notifications for plant watering reminders',
+            importance: Importance.high,
+            priority: Priority.high,
+            icon: '@mipmap/ic_launcher',
+          ),
+          iOS: const DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+        ),
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: payload?.entries.map((e) => '${e.key}:${e.value}').join(','),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      );
+
+      if (kDebugMode) {
+        print('✅ Scheduled notification: $title at $scheduledTime');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error scheduling notification: $e');
+      }
+    }
+  }
+
+  // Cancel a scheduled notification
+  Future<void> cancelNotification(int id) async {
+    try {
+      await _localNotifications.cancel(id);
+      if (kDebugMode) {
+        print('✅ Cancelled notification with id: $id');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error cancelling notification: $e');
+      }
+    }
+  }
+
+  // Cancel all scheduled notifications
+  Future<void> cancelAllNotifications() async {
+    try {
+      await _localNotifications.cancelAll();
+      if (kDebugMode) {
+        print('✅ Cancelled all notifications');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error cancelling all notifications: $e');
+      }
+    }
   }
 }

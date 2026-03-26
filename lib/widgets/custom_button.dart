@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class CustomButton extends StatelessWidget {
-  final String label;
+  final String text;
   final VoidCallback onPressed;
   final Color color;
   final bool isLoading;
@@ -10,7 +10,7 @@ class CustomButton extends StatelessWidget {
 
   const CustomButton({
     super.key,
-    required this.label,
+    required this.text,
     required this.onPressed,
     this.color = const Color(0xFF1B5E20),
     this.isLoading = false,
@@ -24,17 +24,16 @@ class CustomButton extends StatelessWidget {
       width: width,
       height: height,
       child: ElevatedButton(
+        onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: Colors.white,
           elevation: 2,
-          shadowColor: Colors.black26,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         ),
-        onPressed: isLoading ? null : onPressed,
         child: isLoading
             ? const SizedBox(
                 width: 20,
@@ -45,7 +44,7 @@ class CustomButton extends StatelessWidget {
                 ),
               )
             : Text(
-                label,
+                text,
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
